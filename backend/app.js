@@ -8,6 +8,7 @@ const immigrantRoutes = require("./routes/immigrants");
 const dashboardRoutes = require("./routes/dashboard");
 const testUpload2Routes = require("./routes/testUpload2");
 const authRoutes = require("./routes/auth"); // นำเข้า Auth Route
+const missingRoutes = require('./routes/missing');
 
 const app = express();
 app.disable('x-powered-by');
@@ -34,7 +35,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/immigrants", immigrantRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/test-upload2", testUpload2Routes);
-
+app.use('/api/v1/missing-persons', missingRoutes);
 // ⚠️ ดักจับกรณีเรียก Route ที่ไม่มีอยู่จริง (404 handler)
 // เปลี่ยนจากการส่งหน้า HTML เป็นการส่ง JSON เพื่อไม่ให้ Frontend แครช
 app.use((req, res, next) => {

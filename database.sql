@@ -27,7 +27,6 @@ CREATE TABLE agencies (
     police_station VARCHAR(255),           -- สังกัด สน./สภ. / สถานีตำรวจ
     receiving_officer VARCHAR(255),        -- เจ้าหน้าที่ตำรวจผู้รับแจ้ง
     investigating_officer VARCHAR(255),    -- พนักงานสอบสวนผู้รับผิดชอบ
-    password_hash VARCHAR(255),            -- กรุณากรอกรหัสผ่าน (เก็บแบบตัวอักษรเพื่อรองรับการทำ Hash)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
