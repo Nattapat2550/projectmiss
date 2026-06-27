@@ -152,7 +152,7 @@ export default function MissingUploadPage() {
   const totalPages = Math.ceil((result?.preview_data?.length || 0) / itemsPerPage);
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto min-h-screen bg-(--background) text-(--foreground)">
+    <div className="p-8 max-w-[1600px] mx-auto min-h-screen bg-background text-foreground">
       <div className="mb-8 border-b border-(--wrapper) pb-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-(--blueText)">
           ระบบพรีวิวข้อมูล Excel บุคคลสูญหาย / รับแจ้งเหตุ
@@ -227,7 +227,7 @@ export default function MissingUploadPage() {
             </div>
 
             <div className="overflow-x-auto border border-(--wrapper) rounded-xl shadow-md bg-(--button)">
-              <table className="w-full text-sm text-left border-collapse min-w-[800px]">
+              <table className="w-full text-sm text-left border-collapse min-w-200">
                 <thead className="bg-(--container) font-bold border-b border-(--wrapper) text-xs text-(--header) uppercase">
                   <tr>
                     <th className="p-4 border-r border-(--wrapper) w-16 text-center">แถวที่</th>
@@ -319,7 +319,7 @@ export default function MissingUploadPage() {
                       </td>
 
                       <td className="p-4 align-top bg-(--button)">
-                        <pre className="text-xs font-mono bg-(--container) text-(--header) p-3 border border-(--wrapper) rounded-lg max-h-[500px] overflow-y-auto shadow-inner whitespace-pre-wrap sticky top-4">
+                        <pre className="text-xs font-mono bg-(--container) text-(--header) p-3 border border-(--wrapper) rounded-lg max-h-125 overflow-y-auto shadow-inner whitespace-pre-wrap sticky top-4">
                           {JSON.stringify(row.raw_data_from_excel, null, 2)}
                         </pre>
                       </td>
