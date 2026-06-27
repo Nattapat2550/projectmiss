@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --row-hover: #f1f1e8;
+
+  --header-bg: #3F1818;
+  --background: #ffffff;
+  --foreground: #171717;
+  --header: #3f1818;
+  --wrapper:#DBDBD4;
+  --container:#F7F6EE;
+  --button:#FFFDF8;
+  --shadow:#bfbfbf;
+
+  --redText: #900707;
+  --redBG: #e98586;
+  --redBorder: #DC2626;
+
+  --orangeText:#903207;
+  --orangeBG:#e9aa85;
+  --orangeBorder:#be835b;
+
+  --yellowText: #872d00;
+  --yellowBG: #ffea94;
+  --yellowBorder: #D97706;
+
+  --greenText: #008755;
+  --greenBG: #94ffb8;
+  --greenBorder: #059669;
+
+  --greyText:#eaeaea;
+  --greyBG:#696969;
+  --greyBorder:#5f5f5f;
+
+  --blueText:#1447e6;
+
+  /* 🌟 ใหม่: คัดสรรชุดสีกราฟให้สวยงามและตัดกันชัดเจนแยกง่าย (Light Theme) */
+  --chart-1: #8B2635; /* แดงเบอร์กันดีเข้ม */
+  --chart-2: #D96B43; /* ส้มอิฐอบอุ่น */
+  --chart-3: #2F5D62; /* เขียวหัวเป็ด/ Slate Green */
+  --chart-4: #E1B12C; /* เหลืองมัสตาร์ด/โอเคอร์ */
+  --chart-5: #563D67; /* ม่วงพลัมเข้ม */
+  --chart-6: #A77B58; /* น้ำตาลทอง/บรอนซ์ */
+  --chart-other: #7F8C8D; /* เทากลางสำหรับหมวดหมู่อื่นๆ */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sarabun);
+  --font-mono: var(--font-sarabun);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Sarabun, Arial, Helvetica, sans-serif;
+  font-size: 1.25rem;
+}
+
+.TaskItem_DateMonth__m6uGV{
+    color: inherit;
+}
+
+#main-topbar, 
+#main-topbar strong, 
+#main-topbar span {
+    color: #FFFFFF ;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--shadow);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--wrapper);
+}
+
+[data-theme="dark"] {
+  --background: #14121F;
+  --foreground: #AED3DD;
+  --header-bg: #202130;
+  --header: #ffffff;
+  --wrapper: #13131E;
+  --container: #202130;
+  --button: #34334E;
+  --shadow: #0f0d17;
+
+  --blueText:#94fff6;
+
+  --redText: #fcb4b4;
+  --redBG: #9f3234;
+  --redBorder: #ff9191;
+
+  --orangeText:#ffaf5f;
+  --orangeBG:#8b3916;
+  --orangeBorder:#fb9057;
+
+  --yellowText: #ffea5f;
+  --yellowBG: #8b6216;
+  --yellowBorder: #fbc957;
+
+  --greenText: #72fac8;
+  --greenBG: #1a6553;
+  --greenBorder: #57fb8e;
+
+  --greyText:#eaeaea;
+  --greyBG:#696969;
+  --greyBorder:#5f5f5f;
+  
+  /* 🌟 ใหม่: ชุดสีกราฟสำหรับโหมดมืด ปรับให้สว่างขึ้นเพื่อให้เห็นเด่นชัดเหนือกราฟพื้นหลัง (Dark Theme) */
+  --chart-1: #FF7675; /* ชมพูอมแดงสดใส */
+  --chart-2: #FAB1A0; /* ส้มพีชสว่าง */
+  --chart-3: #55E6C1; /* เขียวมิ้นต์/เทอร์คอยส์ */
+  --chart-4: #FFEAA7; /* เหลืองนวลพาสเทล */
+  --chart-5: #D6A2E8; /* ม่วงลาเวนเดอร์ */
+  --chart-6: #EDCFA9; /* ครีมทองหรูหรา */
+  --chart-other: #A4B0BE; /* เทาอ่อน */
+}
+
+[data-theme="dark"] body {
+  background-color: var(--background);
+  color: var(--foreground);
+
+  --row-hover: #2a2b3d;
+}
+
+[data-theme="dark"] #main-topbar,
+[data-theme="dark"] #main-topbar strong,
+[data-theme="dark"] #main-topbar span {
+  color: #ffffff;
+}
+
+.assignee-badge {
+  background-color: var(--badge-bg-light);
+  border: 1px solid var(--badge-border-light);
+  color: var(--badge-text-light);
+}
+
+[data-theme="dark"] .assignee-badge {
+  background-color: var(--badge-bg-dark);
+  border: 1px solid var(--badge-border-dark);
+  color: var(--badge-text-dark);
+}
+
+.badge-dot {
+  background-color: var(--dot-color);
+}
+
+[data-theme="dark"] .badge-dot {
+  background-color: rgba(255, 255, 255, 0.9);
+}
