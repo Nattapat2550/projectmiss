@@ -118,7 +118,6 @@ export default function MissingUploadPage() {
     <span className="text-(--header) opacity-40 italic font-normal text-xs">{text}</span>
   );
 
-  // 🟢 ปรับปรุงฟังก์ชันแสดงรูปภาพ ให้ดึงภาพชัดๆ จาก Google Drive Thumbnail API
   const renderDriveImage = (url: string) => {
     if (!url || url.trim() === '') return null;
     
@@ -129,7 +128,6 @@ export default function MissingUploadPage() {
     if (driveMatch1 && driveMatch1[1]) driveId = driveMatch1[1];
     else if (driveMatch2 && driveMatch2[1]) driveId = driveMatch2[1];
 
-    // ใช้ Thumbnail Endpoint ของกูเกิล ซึ่งหลีกเลี่ยงปัญหา Permission ปิดกั้นได้ดีกว่า
     const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w250-h300` : url;
 
     return (
@@ -140,7 +138,6 @@ export default function MissingUploadPage() {
                 alt="พรีวิวรูป" 
                 className="w-20 h-24 object-cover rounded-md border border-(--wrapper) shadow-sm bg-(--container)"
                 onError={(e) => {
-                    // หากผู้ใช้ล็อคสิทธิ์ไฟล์ขั้นสูงสุด รูปอาจไม่โชว์ ให้ซ่อนกล่องซะ
                     (e.target as HTMLImageElement).style.display = 'none';
                 }}
             />
@@ -261,15 +258,18 @@ export default function MissingUploadPage() {
                           </div>
                           <div>
                             <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดตำรวจและหน่วยงาน</span>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">บช.ที่รับแจ้ง:</span> <span className="font-medium">{row.police_command || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">สน./สภ.:</span> <span className="font-medium">{row.police_station || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">จนท.รับแจ้ง:</span> <span>{row.police_receiver || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">พงส.:</span> <span>{row.investigator || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">เลขคดี/ปจว:</span> <span className="font-mono text-(--blueText)">{row.case_no || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">บช.ที่รับแจ้ง:</span> <span className="font-medium">{row.police_command || renderNull()}</span></div>
+                            
+                            {/* ✅ เพิ่มบรรทัด สถานีตำรวจ และ สน./สภ. แยกจากกัน (แสดงผลฝั่งซ้าย) */}
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">สถานีตำรวจ:</span> <span className="font-medium text-blue-600">{row.police_station || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">สน./สภ.:</span> <span className="font-medium">{row.police_substation || renderNull()}</span></div>
+                            
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">จนท.รับแจ้ง:</span> <span>{row.police_receiver || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">พงส.:</span> <span>{row.investigator || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">เลขคดี/ปจว:</span> <span className="font-mono text-(--blueText)">{row.case_no || renderNull()}</span></div>
                           </div>
                         </div>
 
-                        {/* 🟢 แสดงรูปภาพ Google Drive ควบคู่กับข้อมูลผู้สูญหาย */}
                         <div className="flex gap-4 mb-3 pb-3 border-b border-(--wrapper)">
                           <div className="flex-1 grid grid-cols-2 gap-4">
                               <div>
@@ -288,7 +288,6 @@ export default function MissingUploadPage() {
                               </div>
                           </div>
                           
-                          {/* บล็อกพรีวิวรูปภาพ */}
                           <div className="w-24 shrink-0 flex justify-center">
                               {row.photo_url ? renderDriveImage(row.photo_url) : (
                                   <div className="flex flex-col items-center justify-center opacity-30 h-full">

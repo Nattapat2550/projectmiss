@@ -24,7 +24,7 @@ CREATE TABLE agencies (
     division_11 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 11
     division_12 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 12
     division_13 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 13
-    police_station VARCHAR(255),           -- สังกัด สน./สภ. / สถานีตำรวจ
+    station VARCHAR(255),                  -- สังกัด สน./สภ.
     receiving_officer VARCHAR(255),        -- เจ้าหน้าที่ตำรวจผู้รับแจ้ง
     investigating_officer VARCHAR(255),    -- พนักงานสอบสวนผู้รับผิดชอบ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -81,6 +81,7 @@ CREATE TABLE cases (
     human_trafficking_type VARCHAR(255),   -- ประเภทของการค้ามนุษย์
     action_taken TEXT,                     -- การดำเนินการ
     operation_result TEXT,                 -- ผลการปฏิบัติ
+    police_station VARCHAR(255),                -- สถานีตำรวจ (สน./สภ.) / สถานีตำรวจที่รับแจ้ง
     found_date DATE,                       -- วันที่พบตัว
     notes TEXT,                            -- หมายเหตุ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
