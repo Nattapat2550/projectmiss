@@ -26,15 +26,13 @@ CREATE TABLE agencies (
     division_13 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 13
     station VARCHAR(255),                  -- สังกัด สน./สภ.
     receiving_officer VARCHAR(255),        -- เจ้าหน้าที่ตำรวจผู้รับแจ้ง
-    investigating_officer VARCHAR(255),    -- พนักงานสอบสวนผู้รับผิดชอบ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. ตารางผู้แจ้งความ (informants)
 CREATE TABLE informants (
     informant_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    informant_name VARCHAR(255),           -- ผู้แจ้ง / ชื่อ - สกุล ผู้แจ้ง
-    relationship VARCHAR(100),             -- ความสัมพันธ์
+    informant_name VARCHAR(255) UNIQUE,    -- ผู้แจ้ง / ชื่อ - สกุล ผู้แจ้ง (เพิ่ม UNIQUE เพื่อป้องกันข้อมูลซ้ำ)
     informant_id_card_passport VARCHAR(50),-- เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้แจ้ง
     informant_contact_channel TEXT,        -- ช่องทางการติดต่อของผู้แจ้ง
     informant_phone VARCHAR(50),           -- เบอร์โทรศัพท์ ผู้แจ้ง
@@ -42,15 +40,29 @@ CREATE TABLE informants (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. ตารางบุคคลสูญหายและข้อมูลการเดินทาง (missing_persons)
+-- 3. ตารางบุคคลสูญหายและข้อมูลพื้นฐานบุคคล (missing_persons)
 CREATE TABLE missing_persons (
     missing_person_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    missing_person_name VARCHAR(255),       -- ชื่อบุคคลสูญหาย / ชื่อ - สกุล ผู้สูญหาย
+    missing_person_name VARCHAR(255) UNIQUE,-- ชื่อบุคคลสูญหาย / ชื่อ - สกุล ผู้สูญหาย (เพิ่ม UNIQUE เพื่อป้องกันข้อมูลซ้ำ)
     age INT,                               -- อายุ
     gender VARCHAR(50),                    -- เพศ
     nationality VARCHAR(100),              -- สัญชาติ / สัญชาติของผู้สูญหาย
     passport_number VARCHAR(50),           -- หมายเลขหนังสือเดินทาง
     missing_id_card_passport VARCHAR(50),  -- เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้สูญหาย
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. ตารางคดีและการดำเนินการหลัก (cases)
+CREATE TABLE cases (
+    case_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID REFERENCES agencies(agency_id) ON DELETE SET NULL,
+    informant_id UUID REFERENCES informants(informant_id) ON DELETE SET NULL,
+    missing_person_id UUID REFERENCES missing_persons(missing_person_id) ON DELETE SET NULL,
+    
+    -- ข้อมูลที่ย้ายมาจาก informants (เพราะคดีนึงอาจมีความสัมพันธ์กับคนแจ้งต่างกันไป)
+    relationship VARCHAR(100),             -- ความสัมพันธ์
+    
+    -- ข้อมูลที่ย้ายมาจาก missing_persons (เพราะ 1 คนอาจจะหายได้หลายครั้ง หรือเดินทางเข้าออกแบบใหม่)
     entry_channel VARCHAR(255),            -- ช่องทางที่เดินทางเข้ามาในราชอาณาจักร
     entry_checkpoint_province VARCHAR(255),-- ชื่อด่านและจังหวัดที่เดินทางเข้า
     airline VARCHAR(100),                  -- สายการบิน (ถ้ามี)
@@ -61,15 +73,11 @@ CREATE TABLE missing_persons (
     missing_time TIME,                     -- เวลาสูญหาย หรือ คาดว่าสูญหาย
     missing_location TEXT,                 -- สถานที่สูญหาย หรือ คาดว่าสูญหาย
     photo_url TEXT,                        -- รูปภาพ (เก็บเป็น URL Link ไปยัง Object Storage)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 4. ตารางคดีและการดำเนินการหลัก (cases)
-CREATE TABLE cases (
-    case_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agency_id UUID REFERENCES agencies(agency_id) ON DELETE SET NULL,
-    informant_id UUID REFERENCES informants(informant_id) ON DELETE SET NULL,
-    missing_person_id UUID REFERENCES missing_persons(missing_person_id) ON DELETE SET NULL,
+    
+    -- ข้อมูลที่ย้ายมาจาก agencies
+    investigating_officer VARCHAR(255),    -- พนักงานสอบสวนผู้รับผิดชอบ
+    
+    -- ข้อมูลคดีเดิม
     reported_date DATE,                    -- วัน/เดือน/ปี ที่รับแจ้ง / วันที่รับแจ้งวาม
     receiving_channel VARCHAR(255),        -- ช่องทางการรับแจ้ง
     incident_summary TEXT,                 -- พฤติการณ์ / พฤติการณ์โดยสังเขป
@@ -81,7 +89,7 @@ CREATE TABLE cases (
     human_trafficking_type VARCHAR(255),   -- ประเภทของการค้ามนุษย์
     action_taken TEXT,                     -- การดำเนินการ
     operation_result TEXT,                 -- ผลการปฏิบัติ
-    police_station VARCHAR(255),                -- สถานีตำรวจ (สน./สภ.) / สถานีตำรวจที่รับแจ้ง
+    police_station VARCHAR(255),           -- สถานีตำรวจ (สน./สภ.) / สถานีตำรวจที่รับแจ้ง
     found_date DATE,                       -- วันที่พบตัว
     notes TEXT,                            -- หมายเหตุ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

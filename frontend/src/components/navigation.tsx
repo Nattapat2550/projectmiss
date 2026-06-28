@@ -52,35 +52,9 @@ type SubMenuItem = {
 const menu: MenuItem[] = [
 	{ title: "หน้าหลัก", url: "/" },
 	{
-		title: "แอบเข้า",
-		items: [
-			{
-				title: "ข้อมูลทั้งหมด",
-				icon: <Book className="size-5 shrink-0" />,
-				url: "/immigrant",
-			},
-			{
-				title: "เพิ่มข้อมูล",
-				icon: <Book className="size-5 shrink-0" />,
-				url: "/immigrant/create",
-			},
-		],
-	},
-	{
-		title: "ส่งกลับ",
-		url: "/repatriate",
-		items: [
-			{
-				title: "ข้อมูลทั้งหมด",
-				icon: <Book className="size-5 shrink-0" />,
-				url: "/repatriate",
-			},
-			{
-				title: "เพิ่มข้อมูล",
-				icon: <Book className="size-5 shrink-0" />,
-				url: "/repatriate/create",
-			},
-		],
+		title: "ระบบคนหาย",
+		icon: <Book className="size-5 shrink-0" />,
+		url: "/missing-upload",
 	},
 	{
 		title: "แดชบอร์ด",

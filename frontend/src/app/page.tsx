@@ -119,44 +119,23 @@ async function fetchDashboardStats(type: string) {
 
 // ─── หน้าเพจหลัก (Server Component) ──────────────────────────────────────
 export default async function Home() {
-  const [illegalJson, repatriatedJson] = await Promise.all([
-    fetchDashboardStats("illegal"),
-    fetchDashboardStats("repatriated")
-  ]);
+  const missingJson = await fetchDashboardStats("missing");
 
-  const illegalCount = illegalJson?.stats?.total ?? null;
-  const repatriatedCount = repatriatedJson?.stats?.total ?? null;
+  const missingCount = missingJson?.stats?.total ?? null;
 
   const countDisplay = (n: number | null) =>
     n === null ? "XX" : n.toLocaleString("th-TH");
 
-  const illegalChart = (() => {
-    const raw = illegalJson?.charts?.nationality || [];
+  const missingChart = (() => {
+    const raw = missingJson?.charts?.gender || [];
     const sum = raw.reduce((acc: number, curr: any) => acc + curr.value, 0);
-    const total = illegalJson?.stats?.total || 0;
+    const total = missingJson?.stats?.total || 0;
     
     const mapped = raw.map((d: any, i: number) => ({
       ...d, color: CHART_COLORS[i % CHART_COLORS.length]
     }));
 
     if (total > sum) {
-      // ✨ เปลี่ยนเป็นใช้ var(--chart-other) แทน #737373
-      mapped.push({ name: "อื่นๆ", value: total - sum, color: "var(--chart-other)" });
-    }
-    return mapped;
-  })();
-
-  const repatriatedChart = (() => {
-    const raw = repatriatedJson?.charts?.channel || [];
-    const sum = raw.reduce((acc: number, curr: any) => acc + curr.value, 0);
-    const total = repatriatedJson?.stats?.total || 0;
-
-    const mapped = raw.map((d: any, i: number) => ({
-      ...d, color: CHART_COLORS[i % CHART_COLORS.length]
-    }));
-
-    if (total > sum) {
-      // ✨ เปลี่ยนเป็นใช้ var(--chart-other) แทน #737373
       mapped.push({ name: "อื่นๆ", value: total - sum, color: "var(--chart-other)" });
     }
     return mapped;
@@ -164,36 +143,25 @@ export default async function Home() {
 
   return (
     <div
-      // ✨ เพิ่ม overflow-y-auto ให้เลื่อนแนวตั้งได้
-      className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full overflow-y-auto overflow-x-hidden"
+      className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full overflow-y-auto overflow-x-hidden justify-center"
       style={{
         backgroundColor: "var(--wrapper)",
         boxSizing: "border-box",
-        // ✨ เปลี่ยนจาก height เป็น minHeight เพื่อให้ยืดตามเนื้อหา และสร้าง Scrollbar เมื่อทะลุจอ
         minHeight: "calc(100vh - 80px)", 
       }}
     >
-      <HomeCard
-        title="ผู้ลักลอบเข้า"
-        count={countDisplay(illegalCount)}
-        viewAllHref="/immigrants/illegal"
-        dashboardHref="/dashboard?type=illegal"
-        addHref="/immigrants/illegal/create"
-        chartData={illegalChart}
-        chartTitle="สัญชาติ (Top 6)"
-        imageSrc="/enter.png"
-      />
-
-      <HomeCard
-        title="ผู้ถูกส่งกลับ"
-        count={countDisplay(repatriatedCount)}
-        viewAllHref="/immigrants/repatriated"
-        dashboardHref="/dashboard?type=repatriated"
-        addHref="/immigrants/repatriated/create"
-        chartData={repatriatedChart}
-        chartTitle="ช่องทางการส่งกลับ"
-        imageSrc="return.png"
-      />
+      <div style={{ maxWidth: "600px", width: "100%" }}>
+        <HomeCard
+          title="บุคคลสูญหาย"
+          count={countDisplay(missingCount)}
+          viewAllHref="/missing-upload"
+          dashboardHref="/dashboard"
+          addHref="/missing-upload"
+          chartData={missingChart}
+          chartTitle="สัดส่วนเพศ"
+          imageSrc="/enter.png"
+        />
+      </div>
     </div>
   );
 }

@@ -4,11 +4,9 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 
-const immigrantRoutes = require("./routes/immigrants");
-const dashboardRoutes = require("./routes/dashboard");
-const testUpload2Routes = require("./routes/testUpload2");
 const authRoutes = require("./routes/auth"); // นำเข้า Auth Route
 const missingRoutes = require('./routes/missing');
+const dashboardRoutes = require("./routes/dashboard");
 
 const app = express();
 app.disable('x-powered-by');
@@ -32,10 +30,8 @@ app.get("/", (req, res) => {
 
 // 📌 Routes: ปรับปรุงให้มี /api/v1/ นำหน้าทุกจุดให้ตรงกับหน้าบ้าน
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/immigrants", immigrantRoutes);
-app.use("/api/v1/dashboard", dashboardRoutes);
-app.use("/api/v1/test-upload2", testUpload2Routes);
 app.use('/api/v1/missing-persons', missingRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 // ⚠️ ดักจับกรณีเรียก Route ที่ไม่มีอยู่จริง (404 handler)
 // เปลี่ยนจากการส่งหน้า HTML เป็นการส่ง JSON เพื่อไม่ให้ Frontend แครช
 app.use((req, res, next) => {

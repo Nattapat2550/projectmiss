@@ -240,7 +240,11 @@ export default function MissingUploadPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-(--wrapper)">
-                  {paginatedData?.map((row: any, idx: number) => (
+                  {paginatedData?.map((row: any, idx: number) => {
+                    // รวมชื่อ กองบังคับการ (บก.1 - 13) เพื่อแสดงผลในช่องเดียว
+                    const divisions = [row.division_1, row.division_2, row.division_3, row.division_4, row.division_5, row.division_6, row.division_7, row.division_8, row.division_9, row.division_10, row.division_11, row.division_12, row.division_13].filter(Boolean).join(', ');
+
+                    return (
                     <tr key={idx} className="hover:bg-(--row-hover) transition">
                       <td className="p-4 font-bold border-r border-(--wrapper) text-center align-top opacity-60">
                         {row.row_index}
@@ -248,37 +252,57 @@ export default function MissingUploadPage() {
                       <td className="p-4 border-r border-(--wrapper) bg-(--container) align-top text-(--header)">
                         
                         <div className="grid grid-cols-2 gap-4 mb-3 pb-3 border-b border-(--wrapper)">
+                          {/* หมวดผู้แจ้งและการรับแจ้ง */}
                           <div>
                             <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดผู้แจ้งและการรับแจ้ง</span>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">ผู้แจ้ง:</span> <span className="font-medium text-(--blueText)">{row.reporter_name || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ID/Passport:</span> <span>{row.reporter_id_card || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">เบอร์โทร:</span> <span>{row.reporter_phone || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">อีเมล:</span> <span>{row.reporter_email || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">การติดต่ออื่น:</span> <span>{row.reporter_contact || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">ความสัมพันธ์:</span> <span>{row.relationship || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ติดต่อ:</span> <span>{row.reporter_contact || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">วันที่รับแจ้ง:</span> <span className="text-orange-500 font-medium">{row.report_date || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">ช่องทาง:</span> <span>{row.report_channel || renderNull()}</span></div>
                           </div>
+                          
+                          {/* หมวดตำรวจและหน่วยงาน */}
                           <div>
                             <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดตำรวจและหน่วยงาน</span>
                             <div className="text-sm"><span className="opacity-50 w-32 inline-block">บช.ที่รับแจ้ง:</span> <span className="font-medium">{row.police_command || renderNull()}</span></div>
-                            
-                            {/* ✅ เพิ่มบรรทัด สถานีตำรวจ และ สน./สภ. แยกจากกัน (แสดงผลฝั่งซ้าย) */}
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">กองบังคับการ(บก.):</span> <span className="font-medium">{divisions || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-32 inline-block">สถานีตำรวจ:</span> <span className="font-medium text-blue-600">{row.police_station || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-32 inline-block">สน./สภ.:</span> <span className="font-medium">{row.police_substation || renderNull()}</span></div>
-                            
                             <div className="text-sm"><span className="opacity-50 w-32 inline-block">จนท.รับแจ้ง:</span> <span>{row.police_receiver || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-32 inline-block">พงส.:</span> <span>{row.investigator || renderNull()}</span></div>
-                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">เลขคดี/ปจว:</span> <span className="font-mono text-(--blueText)">{row.case_no || renderNull()}</span></div>
+                            <div className="text-sm mt-1"><span className="opacity-50 w-32 inline-block">เลขคดี:</span> <span className="font-mono text-(--blueText)">{row.case_no || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-32 inline-block">เลข ปจว.:</span> <span className="font-mono text-purple-500">{row.pjv_number || renderNull()}</span></div>
+                            <div className="text-sm flex items-center">
+                              <span className="opacity-50 w-32 inline-block">ลิงก์แนบ ปจว.:</span> 
+                              {row.pjv_file_url ? (
+                                <a href={row.pjv_file_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs bg-blue-100/10 px-2 py-0.5 rounded border border-blue-200/20">
+                                  🔗 เปิดดูไฟล์/รูปภาพ
+                                </a>
+                              ) : renderNull()}
+                            </div>
                           </div>
                         </div>
 
                         <div className="flex gap-4 mb-3 pb-3 border-b border-(--wrapper)">
                           <div className="flex-1 grid grid-cols-2 gap-4">
+                              {/* หมวดผู้สูญหาย */}
                               <div>
                                 <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดผู้สูญหาย</span>
-                                <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อผู้สูญหาย:</span> <span className="font-bold text-purple-500">{row.missing_person_name || renderNull()}</span></div>
-                                <div className="text-sm"><span className="opacity-50 w-24 inline-block">อายุ/เพศ:</span> <span>{row.age || '-'} ปี | เพศ: {row.gender || '-'}</span></div>
-                                <div className="text-sm"><span className="opacity-50 w-24 inline-block">สัญชาติ:</span> <span>{row.nationality || renderNull()}</span></div>
-                                <div className="text-sm"><span className="opacity-50 w-24 inline-block">ID/Passport:</span> <span className="font-mono">{row.passport_id || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อผู้สูญหาย:</span> <span className="font-bold text-purple-500">{row.missing_person_name || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">อายุ/เพศ:</span> <span>{row.age || '-'} ปี | เพศ: {row.gender || '-'}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">สัญชาติ:</span> <span>{row.nationality || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ID/Passport:</span> <span className="font-mono">{row.missing_id_card || row.passport_id || renderNull()}</span></div>
+                                
+                                <div className="text-sm mt-2"><span className="opacity-50 w-28 inline-block">วันที่สูญหาย:</span> <span className="text-red-500 font-medium">{row.missing_date || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">เวลาสูญหาย:</span> <span className="text-red-500 font-medium">{row.missing_time || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">สถานที่สูญหาย:</span> <span>{row.missing_location || renderNull()}</span></div>
                               </div>
+                              
+                              {/* การเดินทางเข้า-ออก */}
                               <div>
                                 <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">การเดินทางเข้า-ออก</span>
                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">ช่องทางเข้า:</span> <span>{row.entry_channel || renderNull()}</span></div>
@@ -298,11 +322,12 @@ export default function MissingUploadPage() {
                           </div>
                         </div>
 
+                        {/* พฤติการณ์ / ผลการปฏิบัติ */}
                         <div className="bg-(--button) rounded-lg p-3 border border-(--wrapper)">
                           <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-2">พฤติการณ์ / การสืบสวน และ ผลการปฏิบัติ</span>
                           <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                             <div><span className="opacity-50 w-24 inline-block">สถานที่พบเห็น:</span> <span>{row.last_seen_location || renderNull()}</span></div>
-                             <div><span className="opacity-50 w-24 inline-block">วันที่พบเห็น:</span> <span className="text-orange-500 font-medium">{row.last_seen_date || renderNull()}</span></div>
+                             <div><span className="opacity-50 w-24 inline-block">สถานที่พบล่าสุด:</span> <span>{row.last_seen_location || renderNull()}</span></div>
+                             <div><span className="opacity-50 w-24 inline-block">วันที่พบล่าสุด:</span> <span className="text-orange-500 font-medium">{row.last_seen_date || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">ข้อบ่งชี้ค้ามนุษย์:</span> <span>{row.human_trafficking_indicator || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">การดำเนินการ:</span> <span>{row.action_taken || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">การคัดแยกเหยื่อ:</span> <span>{row.victim_screening || renderNull()}</span></div>
@@ -324,7 +349,7 @@ export default function MissingUploadPage() {
                         </pre>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
