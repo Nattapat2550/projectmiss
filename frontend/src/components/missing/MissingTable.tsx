@@ -47,14 +47,14 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
         </thead>
         <tbody>
           {data.length > 0 ? (
-            data.map((person) => {
+            data.map((person, index) => {
               const fullName = person.missing_person_name || "ไม่ระบุชื่อ";
               const idCard = person.missing_id_card_passport || person.passport_number || "ไม่ระบุ";
               const location = person.missing_location || person.last_seen_location_province || "ไม่ระบุสถานที่";
 
               return (
                 <tr
-                  key={person.missing_person_id || person.case_id || Math.random()}
+                  key={person.case_id || `${person.missing_person_id}-${index}`}
                   onClick={() => router.push(`/missing/${person.missing_person_id}`)}
                   className="cursor-pointer transition-colors border-b border-(--wrapper) bg-background hover:bg-(--row-hover)"
                 >
