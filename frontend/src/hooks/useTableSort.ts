@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { SortField } from "@/components/immigrants/TableHeader"; // ปรับ path ตามจริงของโปรเจกต์
+import { SortField } from "@/components/missing/TableHeader"; // ปรับ path ตามจริงของโปรเจกต์
 
 export function useTableSort(data: any[]) {
   const [sortField, setSortField] = useState<SortField | null>(null);

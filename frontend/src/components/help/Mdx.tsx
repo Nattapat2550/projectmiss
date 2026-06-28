@@ -22,13 +22,9 @@ export const MdxComponents = {
     // Base inline styles for explicit color injection
     const buttonStyle: React.CSSProperties = {
       backgroundColor: color,
-      color: textColor ,
+      color: textColor,
+      ...(border ? { border: `1px solid ${border}` } : {}),
     };
-
-    // If a border color is provided, construct a solid border
-    if (border) {
-      buttonStyle.border = `1px solid ${border}`;
-    }
 
     return (
       <button 
