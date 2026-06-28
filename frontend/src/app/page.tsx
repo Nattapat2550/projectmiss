@@ -119,15 +119,15 @@ async function fetchDashboardStats(type: string) {
 
 // ─── หน้าเพจหลัก (Server Component) ──────────────────────────────────────
 export default async function Home() {
+  // ดึงข้อมูลสำหรับ Missing Persons (บุคคลสูญหาย)
   const missingJson = await fetchDashboardStats("missing");
-
   const missingCount = missingJson?.stats?.total ?? null;
 
   const countDisplay = (n: number | null) =>
     n === null ? "XX" : n.toLocaleString("th-TH");
 
   const missingChart = (() => {
-    const raw = missingJson?.charts?.gender || [];
+    const raw = missingJson?.charts?.nationality || [];
     const sum = raw.reduce((acc: number, curr: any) => acc + curr.value, 0);
     const total = missingJson?.stats?.total || 0;
     
@@ -143,23 +143,24 @@ export default async function Home() {
 
   return (
     <div
-      className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full overflow-y-auto overflow-x-hidden justify-center"
+      className="flex flex-col lg:flex-row justify-center gap-6 p-4 sm:p-6 w-full overflow-y-auto overflow-x-hidden"
       style={{
         backgroundColor: "var(--wrapper)",
         boxSizing: "border-box",
         minHeight: "calc(100vh - 80px)", 
       }}
     >
-      <div style={{ maxWidth: "600px", width: "100%" }}>
+      {/* ปรับให้มีการ์ดเดียวแต่อยู่ตรงกลาง สำหรับระบบคนหายโดยเฉพาะ */}
+      <div className="w-full max-w-md flex flex-col">
         <HomeCard
           title="บุคคลสูญหาย"
           count={countDisplay(missingCount)}
-          viewAllHref="/missing-upload"
+          viewAllHref="/missing"
           dashboardHref="/dashboard"
-          addHref="/missing-upload"
+          addHref="/missing/create"
           chartData={missingChart}
-          chartTitle="สัดส่วนเพศ"
-          imageSrc="/enter.png"
+          chartTitle="สัญชาติ (Top 6)"
+          imageSrc="/user.png" // เปลี่ยนไอคอนเป็นรูปผู้ใช้/คนหาย
         />
       </div>
     </div>
@@ -197,7 +198,6 @@ function HomeCard({
         boxShadow: "4px 4px 0px rgba(0, 0, 0, 0.25)",
         color: "var(--header)",
         flex: 1, 
-        // ✨ ลบ height: 100%, minHeight: 0 และ overflow: hidden ทิ้ง เพื่อให้การ์ดขยายตามความยาวกราฟได้
         boxSizing: "border-box",
       }}
     >
@@ -209,7 +209,6 @@ function HomeCard({
           flexDirection: "column",
           flex: 1,
           boxSizing: "border-box",
-          // ✨ ลบ overflow: hidden ตรงนี้ด้วย
         }}
       >
         <div
@@ -225,9 +224,8 @@ function HomeCard({
               border: "1px solid var(--shadow)",
             }}
           >
-              <img src={imageSrc} className="ratio-[1/1] dark:invert"></img>
-            
-            </div>
+              <img src={imageSrc} className="aspect-square w-10 object-contain dark:invert" alt="Icon"></img>
+          </div>
           
           <div className="flex flex-col shrink-0">
             <span
@@ -240,7 +238,7 @@ function HomeCard({
               className="font-bold"
               style={{ color: "var(--header)", fontSize: "1.15rem" }}
             >
-              จำนวน <span>{count}</span> คน
+              จำนวน <span className="text-blue-600 dark:text-blue-400 text-xl">{count}</span> คน
             </span>
           </div>
         </div>
@@ -248,7 +246,7 @@ function HomeCard({
         <div className="px-5 pt-3 shrink-0">
           <Link href={viewAllHref} className="block w-full">
             <button
-              className="w-full py-2 rounded-lg font-medium text-center transition-opacity hover:opacity-80 cursor-pointer"
+              className="w-full py-2 rounded-lg font-bold text-center transition-opacity hover:opacity-80 cursor-pointer"
               style={{
                 backgroundColor: "var(--button)",
                 border: "1px solid var(--shadow)",
@@ -263,7 +261,7 @@ function HomeCard({
         <div className="px-5 pt-2 shrink-0">
           <Link href={dashboardHref} className="block w-full">
             <button
-              className="w-full py-2 rounded-lg font-medium text-center transition-opacity hover:opacity-80 cursor-pointer"
+              className="w-full py-2 rounded-lg font-bold text-center transition-opacity hover:opacity-80 cursor-pointer"
               style={{
                 backgroundColor: "var(--button)",
                 border: "1px solid var(--shadow)",
@@ -280,7 +278,6 @@ function HomeCard({
           style={{ borderBottom: "1px solid var(--shadow)" }}
         />
 
-        {/* ✨ เอา overflow-hidden ออกตรงนี้ด้วย */}
         <div className="flex flex-1 items-start justify-center px-5 py-3 pt-5">
           {chartData && chartData.length > 0 ? (
             <DonutChart data={chartData} title={chartTitle} />
@@ -308,14 +305,13 @@ function HomeCard({
         <div className="px-5 py-4 shrink-0 pb-5">
           <Link href={addHref} className="block w-full">
             <button
-              className="w-full py-2 rounded-lg font-medium text-center transition-opacity hover:opacity-80 cursor-pointer"
+              className="w-full py-2 rounded-lg font-bold text-center transition-opacity hover:opacity-80 cursor-pointer text-white"
               style={{
-                backgroundColor: "var(--button)",
+                backgroundColor: "var(--header)",
                 border: "1px solid var(--shadow)",
-                color: "var(--foreground)",
               }}
             >
-              เพิ่มข้อมูล
+              + เพิ่มข้อมูล
             </button>
           </Link>
         </div>
