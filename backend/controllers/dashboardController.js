@@ -58,14 +58,22 @@ exports.getDashboardStats = async (req, res) => {
     }
 
     if (nationality && nationality !== "ทั้งหมด") {
-      conditions.push(`mp.nationality = $${paramIndex}`);
-      queryParams.push(nationality);
-      paramIndex++;
+      if (nationality === "ไม่ระบุ") {
+        conditions.push(`(mp.nationality IS NULL OR TRIM(mp.nationality) = '' OR mp.nationality = 'ไม่ระบุ')`);
+      } else {
+        conditions.push(`mp.nationality = $${paramIndex}`);
+        queryParams.push(nationality);
+        paramIndex++;
+      }
     }
     if (gender && gender !== "ทั้งหมด") {
-      conditions.push(`mp.gender = $${paramIndex}`);
-      queryParams.push(gender);
-      paramIndex++;
+      if (gender === "ไม่ระบุ") {
+        conditions.push(`(mp.gender IS NULL OR TRIM(mp.gender) = '' OR mp.gender = 'ไม่ระบุ')`);
+      } else {
+        conditions.push(`mp.gender = $${paramIndex}`);
+        queryParams.push(gender);
+        paramIndex++;
+      }
     }
 
     let whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -152,8 +160,8 @@ exports.getDashboardStats = async (req, res) => {
     const genderChartRes = await pool.query(genderChartQuery, baseParams);
     charts.gender = genderChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
-    let allNatsRes = await pool.query(`SELECT DISTINCT COALESCE(nationality, 'ไม่ระบุ') as nat FROM missing_persons WHERE nationality IS NOT NULL AND nationality != '' ORDER BY nat`);
-    const allGendersRes = await pool.query(`SELECT DISTINCT COALESCE(gender, 'ไม่ระบุ') as gen FROM missing_persons WHERE gender IS NOT NULL AND gender != '' ORDER BY gen`);
+    let allNatsRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(nationality), ''), 'ไม่ระบุ') as nat FROM missing_persons ORDER BY nat`);
+    const allGendersRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(gender), ''), 'ไม่ระบุ') as gen FROM missing_persons ORDER BY gen`);
     
     res.status(200).json({
       success: true,
