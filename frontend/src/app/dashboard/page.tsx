@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import BarChart from "@/components/dashboard/BarChart";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -8,6 +8,14 @@ import MissingTable from "@/components/missing/MissingTable";
 
 function DashboardContent() {
   const { states, actions, derived } = useDashboard();
+  const [showSettings, setShowSettings] = useState(false);
+  const [visibleCharts, setVisibleCharts] = useState<string[]>([]);
+
+  const toggleChart = (chart: string) => {
+    setVisibleCharts((prev) => 
+      prev.includes(chart) ? prev.filter((c) => c !== chart) : [...prev, chart]
+    );
+  };
   const inputClass = "w-full bg-background border border-(--wrapper) text-foreground rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--header)/40 [&::-webkit-calendar-picker-indicator]:dark:invert";
 
   return (
@@ -75,14 +83,22 @@ function DashboardContent() {
               </div>
 
               {/* Charts */}
-              <div className="bg-(--container) border border-(--wrapper) rounded-[0.2rem] p-6 shadow-[4px_4px_0px_rgba(0,0,0,0.25)]">
-                <span className="font-bold text-lg block mb-6 text-(--header)">กราฟสรุปจำนวนคนหาย</span>
+              <div className="bg-(--container) border border-(--wrapper) rounded-[0.2rem] p-6 shadow-[4px_4px_0px_rgba(0,0,0,0.25)] relative">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="font-bold text-lg text-(--header)">กราฟสรุปจำนวนคนหาย</span>
+                  <button 
+                    onClick={() => setShowSettings(true)} 
+                    className="px-3 py-1.5 bg-(--wrapper) border border-zinc-300 dark:border-zinc-700 rounded text-xs font-bold text-(--header) hover:opacity-80 transition cursor-pointer flex items-center gap-1 active:scale-95 select-none"
+                  >
+                    ⚙️ ตั้งค่าความน่าสนใจของกราฟ
+                  </button>
+                </div>
                 {(!states.dashboardData || states.dashboardData.tableData.length === 0) ? (
                   <div className="flex items-center justify-center h-48 text-muted-foreground font-medium text-sm">ไม่มีข้อมูลแสดงผลตามตัวกรองที่ระบุ</div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-2 justify-start items-start w-full">
-                    {derived.natChart.length > 0 && <BarChart data={derived.natChart} title="สัญชาติ (Top 6)" />}
-                    {derived.genderChart.length > 0 && <BarChart data={derived.genderChart} title="เพศ" />}
+                    {(!visibleCharts.length || visibleCharts.includes("nationality")) && derived.natChart.length > 0 && <BarChart data={derived.natChart} title="สัญชาติ (Top 6)" />}
+                    {(!visibleCharts.length || visibleCharts.includes("gender")) && derived.genderChart.length > 0 && <BarChart data={derived.genderChart} title="เพศ" />}
                   </div>
                 )}
               </div>
@@ -116,6 +132,48 @@ function DashboardContent() {
                  )}
               </div>
               
+            </div>
+          )}
+
+          {/* Popup Modal สำหรับ Checkboxes ตั้งค่า */}
+          {showSettings && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-(--container) border border-(--wrapper) rounded-[0.2rem] p-6 w-full max-w-md shadow-2xl relative">
+                <h4 className="text-lg font-bold text-(--header) mb-4">⚙️ ตั้งค่าความน่าสนใจของกราฟ</h4>
+                <p className="text-sm opacity-80 text-(--header) mb-4">
+                  เลือกกราฟที่ต้องการให้แสดงผลบนแดชบอร์ดหลัก:
+                </p>
+                
+                <div className="flex flex-col gap-3 mb-6">
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={visibleCharts.includes("nationality")} 
+                      onChange={() => toggleChart("nationality")} 
+                      className="w-4 h-4 accent-(--blueText)" 
+                    />
+                    สัญชาติ (Top 6)
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={visibleCharts.includes("gender")} 
+                      onChange={() => toggleChart("gender")} 
+                      className="w-4 h-4 accent-(--blueText)" 
+                    />
+                    เพศ
+                  </label>
+                </div>
+
+                <div className="flex justify-end mt-2">
+                  <button 
+                    onClick={() => setShowSettings(false)}
+                    className="px-6 py-2 bg-(--header) text-background rounded-md font-bold text-sm hover:opacity-90 transition active:scale-95 cursor-pointer"
+                  >
+                    บันทึก / ปิด
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const missingController = require("../controllers/missingController");
+const uploadController = require("../controllers/uploadController");
 const { protect } = require("../middleware/auth");
 
 // 🟢 เปลี่ยนเป็นใช้ MemoryStorage เพื่อให้ Controller สามารถอ่าน req.file.buffer ได้
@@ -13,8 +14,8 @@ router.get("/", missingController.getMissingPersons);
 router.post("/", protect, upload.single("photo"), missingController.createMissingPerson);
 
 // 📌 API สำหรับอัปโหลด Excel
-router.post("/upload", protect, upload.single("file"), missingController.uploadMissingExcel);
-router.get("/upload-progress/:jobId", missingController.getUploadProgress);
+router.post("/upload", protect, upload.single("file"), uploadController.uploadMissingExcel);
+router.get("/upload-progress/:jobId", uploadController.getUploadProgress);
 
 // 📌 API สำหรับดึงข้อมูลบุคคลสูญหายรายเดียว และ แก้ไขข้อมูล
 router.get("/:id", missingController.getMissingPersonById);

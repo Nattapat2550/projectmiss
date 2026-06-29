@@ -3,7 +3,29 @@
 import { useRouter } from "next/navigation";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
-export type SortField = "name" | "nationality" | "age" | "gender" | "missing_id_card_passport" | "missing_location" | "missing_date" | "status";
+export const helperGetFullName = (person: any): string => {
+  if (!person) return "ไม่ระบุชื่อ";
+
+  const firstTh = person.first_name_th?.trim() || "";
+  const lastTh = person.last_name_th?.trim() || "";
+  const thName = `${firstTh} ${lastTh}`.trim();
+
+  if (thName && thName !== "ไม่ระบุ" && thName !== "ไม่ระบุ ไม่ระบุ") {
+    return thName;
+  }
+
+  const firstEn = person.first_name_en?.trim() || "";
+  const lastEn = person.last_name_en?.trim() || "";
+  const enName = `${firstEn} ${lastEn}`.trim();
+
+  if (enName && enName !== "ไม่ระบุ" && enName !== "ไม่ระบุ ไม่ระบุ") {
+    return enName;
+  }
+
+  return "ไม่ระบุชื่อ";
+};
+
+export type SortField = "name" | "nationality" | "age" | "gender" | "missing_location" | "missing_date" | "status" | "human_trafficking";
 
 interface MissingTableProps {
   data: any[];
@@ -39,30 +61,23 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
         <thead>
           <tr style={{ borderBottom: "1px solid var(--wrapper)" }}>
             <Th field="name" width="w-[20%]">ชื่อ - นามสกุล</Th>
-            <Th field="nationality" width="w-[12%]">สัญชาติ</Th>
-            <Th field="age" width="w-[8%]">อายุ</Th>
-            <Th field="gender" width="w-[8%]">เพศ</Th>
-            <Th field="missing_id_card_passport" width="w-[15%]">เลขประจำตัว/พาสปอร์ต</Th>
-            <Th field="missing_location" width="w-[20%]">สถานที่สูญหายล่าสุด</Th>
+            <Th field="nationality" width="w-[10%]">สัญชาติ</Th>
+            <Th field="age" width="w-[10%]">อายุ</Th>
+            <Th field="gender" width="w-[10%]">เพศ</Th>
+            <Th field="missing_location" width="w-[15%]">สถานที่สูญหายล่าสุด</Th>
             <Th field="missing_date" width="w-[10%]">วันที่รับแจ้ง</Th>
-            <Th field="status" width="w-[12%]">สถานะ</Th>
+            <Th field="human_trafficking" width="w-[15%]">ข้อบ่งชี้ค้ามนุษย์</Th>
+            <Th field="status" width="w-[10%]">สถานะ</Th>
           </tr>
         </thead>
         <tbody>
           {data.length > 0 ? (
             data.map((person, index) => {
-              let fullName = "ไม่ระบุชื่อ";
-              
-              if (person.first_name_th || person.last_name_th) {
-                fullName = `${person.first_name_th || ""} ${person.last_name_th || ""}`.trim();
-              } else if (person.first_name_en || person.last_name_en) {
-                fullName = `${person.first_name_en || ""} ${person.last_name_en || ""}`.trim();
-              }
+              const fullName = helperGetFullName(person);
 
-              const idCard = person.missing_id_card_passport || person.passport_number || person.passport_id || "ไม่ระบุ";
               const location = person.detected_location_province || person.address || person.detected_location_details || "ไม่ระบุสถานที่";
               const missingDate = person.missing_date || person.detected_date;
-              const foundDate = person.found_date || person.return_date;
+              const isFound = person.found_date || (person.operation_result && person.operation_result.includes("พบตัว") && !person.operation_result.includes("ไม่พบตัว"));
 
               return (
                 <tr
@@ -85,21 +100,19 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
                   <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }}>
                     {person.gender || "-"}
                   </td>
-                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={idCard}>
-                    {idCard}
-                  </td>
                   <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={location}>
                     {location}
                   </td>
-                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }}>
+                  <td className="px-4 py-3 truncate border-r" style={{ borderColor: "var(--wrapper)" }}>
                     {missingDate ? new Date(missingDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}
                   </td>
+                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={person.human_trafficking_indicators || "-"}>
+                    {person.human_trafficking_indicators || "-"}
+                  </td>
                   <td className="px-4 py-3 truncate">
-                    {foundDate ? (
-                      <span className="text-(--greenText)">พบตัวแล้ว</span>
-                    ) : (
-                      <span className="text-(--redText)">ยังไม่พบตัว</span>
-                    )}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${isFound ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                      {isFound ? "พบตัวแล้ว" : "ยังไม่พบตัว"}
+                    </span>
                   </td>
                 </tr>
               );

@@ -72,20 +72,22 @@ exports.getDashboardStats = async (req, res) => {
 
     let orderClause = `ORDER BY c.reported_date DESC NULLS LAST, c.case_id DESC`; 
     if (sortBy) {
-      const dir = sortOrder.toLowerCase() === "desc" ? "DESC" : "ASC";
-      const sortMap = {
-          name: `NULLIF(TRIM(mp.first_name_th), '') IS NULL ASC, mp.first_name_th ${dir}`,
-          nationality: `NULLIF(TRIM(mp.nationality), '') IS NULL ASC, mp.nationality ${dir}`,
-          age: `mp.age IS NULL ASC, mp.age ${dir}`,
-          gender: `NULLIF(TRIM(mp.gender), '') IS NULL ASC, mp.gender ${dir}`,
-          missing_id_card_passport: `NULLIF(TRIM(mp.missing_id_card_passport), '') IS NULL ASC, mp.missing_id_card_passport ${dir}`,
-          missing_location: `NULLIF(TRIM(c.detected_location_province), '') IS NULL ASC, c.detected_location_province ${dir}`,
-          missing_date: `c.missing_date IS NULL ASC, c.missing_date ${dir}`,
-          reported_date: `c.reported_date IS NULL ASC, c.reported_date ${dir}`,
-          status: `c.found_date IS NULL ASC, c.found_date ${dir}`
-      };
-      if (sortMap[sortBy]) {
-          orderClause = `ORDER BY ${sortMap[sortBy]}, c.case_id DESC`;
+      const field = String(sortBy).trim();
+      const dir = String(sortOrder).trim().toLowerCase() === "asc" ? "ASC" : "DESC";
+      let sortExpr = null;
+      switch (field) {
+          case "name": sortExpr = `NULLIF(TRIM(mp.first_name_th), '') ${dir} NULLS LAST`; break;
+          case "nationality": sortExpr = `NULLIF(TRIM(mp.nationality), '') ${dir} NULLS LAST`; break;
+          case "age": sortExpr = `mp.age ${dir} NULLS LAST`; break;
+          case "gender": sortExpr = `NULLIF(TRIM(mp.gender), '') ${dir} NULLS LAST`; break;
+          case "missing_id_card_passport": sortExpr = `NULLIF(TRIM(mp.missing_id_card_passport), '') ${dir} NULLS LAST`; break;
+          case "missing_location": sortExpr = `NULLIF(TRIM(c.detected_location_province), '') ${dir} NULLS LAST`; break;
+          case "missing_date": sortExpr = `c.missing_date ${dir} NULLS LAST`; break;
+          case "reported_date": sortExpr = `c.reported_date ${dir} NULLS LAST`; break;
+          case "status": sortExpr = `(CASE WHEN c.found_date IS NOT NULL OR (c.operation_result ILIKE '%พบตัว%' AND c.operation_result NOT ILIKE '%ไม่พบตัว%') THEN 0 ELSE 1 END) ${dir}`; break;
+      }
+      if (sortExpr) {
+          orderClause = `ORDER BY ${sortExpr}, c.case_id DESC`;
       }
     }
 
@@ -103,6 +105,9 @@ exports.getDashboardStats = async (req, res) => {
         mp.missing_id_card_passport,
         mp.passport_number,
         c.case_id,
+        c.police_station,
+        c.incident_summary,
+        c.human_trafficking_indicators,
         c.detected_location_province as address,
         c.detected_location_details,
         c.missing_date as detected_date,
@@ -133,7 +138,7 @@ exports.getDashboardStats = async (req, res) => {
     let charts = {};
 
     // นับจำนวนที่พบตัวแล้ว
-    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere ? baseWhere + " AND " : "WHERE "} c.found_date IS NOT NULL`;
+    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere ? baseWhere + " AND " : "WHERE "} (c.found_date IS NOT NULL OR (c.operation_result ILIKE '%พบตัว%' AND c.operation_result NOT ILIKE '%ไม่พบตัว%'))`;
     const foundRes = await pool.query(foundQuery, baseParams);
     stats.found = parseInt(foundRes.rows[0].count);
 
