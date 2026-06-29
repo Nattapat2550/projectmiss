@@ -255,7 +255,12 @@ export default function MissingUploadPage() {
                           {/* หมวดผู้แจ้งและการรับแจ้ง */}
                           <div>
                             <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดผู้แจ้งและการรับแจ้ง</span>
-                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ผู้แจ้ง:</span> <span className="font-medium text-(--blueText)">{row.reporter_name || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อผู้แจ้ง (TH):</span> <span className="font-medium text-(--blueText)">{row.reporter_first_name_th || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อกลาง (TH):</span> <span className="font-medium text-(--blueText)">{row.reporter_middle_name_th || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">สกุลผู้แจ้ง (TH):</span> <span className="font-medium text-(--blueText)">{row.reporter_last_name_th || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อผู้แจ้ง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_first_name_en || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อกลาง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_middle_name_en || renderNull()}</span></div>
+                            <div className="text-sm"><span className="opacity-50 w-24 inline-block">สกุลผู้แจ้ง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_last_name_en || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">ID/Passport:</span> <span>{row.reporter_id_card || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">เบอร์โทร:</span> <span>{row.reporter_phone || renderNull()}</span></div>
                             <div className="text-sm"><span className="opacity-50 w-24 inline-block">อีเมล:</span> <span>{row.reporter_email || renderNull()}</span></div>
@@ -292,14 +297,24 @@ export default function MissingUploadPage() {
                               {/* หมวดผู้สูญหาย */}
                               <div>
                                 <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-1">หมวดผู้สูญหาย</span>
-                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อผู้สูญหาย:</span> <span className="font-bold text-purple-500">{row.missing_person_name || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อผู้สูญหาย (TH):</span> <span className="font-bold text-purple-500">{row.missing_first_name_th || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อกลาง (TH):</span> <span className="font-bold text-purple-500">{row.missing_middle_name_th || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">สกุลผู้สูญหาย (TH):</span> <span className="font-bold text-purple-500">{row.missing_last_name_th || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อผู้สูญหาย (EN):</span> <span className="font-bold text-purple-500">{row.missing_first_name_en || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อกลาง (EN):</span> <span className="font-bold text-purple-500">{row.missing_middle_name_en || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">สกุลผู้สูญหาย (EN):</span> <span className="font-bold text-purple-500">{row.missing_last_name_en || renderNull()}</span></div>
                                 <div className="text-sm"><span className="opacity-50 w-28 inline-block">อายุ/เพศ:</span> <span>{row.age || '-'} ปี | เพศ: {row.gender || '-'}</span></div>
                                 <div className="text-sm"><span className="opacity-50 w-28 inline-block">สัญชาติ:</span> <span>{row.nationality || renderNull()}</span></div>
                                 <div className="text-sm"><span className="opacity-50 w-28 inline-block">ID/Passport:</span> <span className="font-mono">{row.missing_id_card || row.passport_id || renderNull()}</span></div>
                                 
                                 <div className="text-sm mt-2"><span className="opacity-50 w-28 inline-block">วันที่สูญหาย:</span> <span className="text-red-500 font-medium">{row.missing_date || renderNull()}</span></div>
                                 <div className="text-sm"><span className="opacity-50 w-28 inline-block">เวลาสูญหาย:</span> <span className="text-red-500 font-medium">{row.missing_time || renderNull()}</span></div>
-                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">สถานที่สูญหาย:</span> <span>{row.missing_location || renderNull()}</span></div>
+                                
+                                <div className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mt-3 mb-1">สถานที่สูญหาย</div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">รายละเอียด:</span> <span>{row.detected_location_details || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">ตำบล/แขวง:</span> <span>{row.detected_location_sub_district || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">อำเภอ/เขต:</span> <span>{row.detected_location_district || renderNull()}</span></div>
+                                <div className="text-sm"><span className="opacity-50 w-28 inline-block">จังหวัด:</span> <span>{row.detected_location_province || renderNull()}</span></div>
                               </div>
                               
                               {/* การเดินทางเข้า-ออก */}
@@ -326,8 +341,6 @@ export default function MissingUploadPage() {
                         <div className="bg-(--button) rounded-lg p-3 border border-(--wrapper)">
                           <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider block mb-2">พฤติการณ์ / การสืบสวน และ ผลการปฏิบัติ</span>
                           <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                             <div><span className="opacity-50 w-24 inline-block">สถานที่พบล่าสุด:</span> <span>{row.last_seen_location || renderNull()}</span></div>
-                             <div><span className="opacity-50 w-24 inline-block">วันที่พบล่าสุด:</span> <span className="text-orange-500 font-medium">{row.last_seen_date || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">ข้อบ่งชี้ค้ามนุษย์:</span> <span>{row.human_trafficking_indicator || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">การดำเนินการ:</span> <span>{row.action_taken || renderNull()}</span></div>
                              <div><span className="opacity-50 w-24 inline-block">การคัดแยกเหยื่อ:</span> <span>{row.victim_screening || renderNull()}</span></div>

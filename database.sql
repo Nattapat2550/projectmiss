@@ -32,7 +32,15 @@ CREATE TABLE agencies (
 -- 2. ตารางผู้แจ้งความ (informants)
 CREATE TABLE informants (
     informant_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    informant_name VARCHAR(255) UNIQUE,    -- ผู้แจ้ง / ชื่อ - สกุล ผู้แจ้ง (เพิ่ม UNIQUE เพื่อป้องกันข้อมูลซ้ำ)
+    first_name_th VARCHAR(255) NOT NULL,
+    middle_name_th VARCHAR(255),
+    last_name_th VARCHAR(255) NOT NULL,
+    first_name_en VARCHAR(255),
+    middle_name_en VARCHAR(255),
+    last_name_en VARCHAR(255),
+    age INT,                               -- อายุ
+    gender VARCHAR(50),
+    nationality VARCHAR(100),
     informant_id_card_passport VARCHAR(50),-- เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้แจ้ง
     informant_contact_channel TEXT,        -- ช่องทางการติดต่อของผู้แจ้ง
     informant_phone VARCHAR(50),           -- เบอร์โทรศัพท์ ผู้แจ้ง
@@ -43,7 +51,12 @@ CREATE TABLE informants (
 -- 3. ตารางบุคคลสูญหายและข้อมูลพื้นฐานบุคคล (missing_persons)
 CREATE TABLE missing_persons (
     missing_person_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    missing_person_name VARCHAR(255) UNIQUE,-- ชื่อบุคคลสูญหาย / ชื่อ - สกุล ผู้สูญหาย (เพิ่ม UNIQUE เพื่อป้องกันข้อมูลซ้ำ)
+    first_name_th VARCHAR(255) NOT NULL,
+    middle_name_th VARCHAR(255),
+    last_name_th VARCHAR(255) NOT NULL,
+    first_name_en VARCHAR(255),
+    middle_name_en VARCHAR(255),
+    last_name_en VARCHAR(255),
     age INT,                               -- อายุ
     gender VARCHAR(50),                    -- เพศ
     nationality VARCHAR(100),              -- สัญชาติ / สัญชาติของผู้สูญหาย
@@ -67,11 +80,12 @@ CREATE TABLE cases (
     entry_checkpoint_province VARCHAR(255),-- ชื่อด่านและจังหวัดที่เดินทางเข้า
     airline VARCHAR(100),                  -- สายการบิน (ถ้ามี)
     entry_date DATE,                       -- วันที่เดินทางเข้า
-    last_seen_location_province VARCHAR(255),-- จุดที่พบเห็นครั้งสุดท้าย/จังหวัดที่เดินทางออก
-    last_seen_date DATE,                   -- วันที่พบเห็นครั้งสุดท้าย
+    detected_location_details TEXT,
+    detected_location_sub_district VARCHAR(255),
+    detected_location_district VARCHAR(255),
+    detected_location_province VARCHAR(255),
     missing_date DATE,                     -- วันที่สูญหาย หรือ คาดว่าสูญหาย
     missing_time TIME,                     -- เวลาสูญหาย หรือ คาดว่าสูญหาย
-    missing_location TEXT,                 -- สถานที่สูญหาย หรือ คาดว่าสูญหาย
     photo_url TEXT,                        -- รูปภาพ (เก็บเป็น URL Link ไปยัง Object Storage)
     
     -- ข้อมูลที่ย้ายมาจาก agencies
@@ -98,4 +112,3 @@ CREATE TABLE cases (
 -- การสร้าง Index สำหรับคอลัมน์ที่มักจะถูกค้นหาบ่อยเพื่อเพิ่มประสิทธิภาพ (Performance)
 CREATE INDEX idx_cases_reported_date ON cases(reported_date);
 CREATE INDEX idx_cases_case_number ON cases(case_number);
-CREATE INDEX idx_missing_person_name ON missing_persons(missing_person_name);

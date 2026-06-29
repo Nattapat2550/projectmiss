@@ -73,12 +73,19 @@ exports.getDashboardStats = async (req, res) => {
     let orderClause = `ORDER BY c.reported_date DESC NULLS LAST, c.case_id DESC`; 
     if (sortBy) {
       const dir = sortOrder.toLowerCase() === "desc" ? "DESC" : "ASC";
-      if (sortBy === "name") {
-          orderClause = `ORDER BY mp.missing_person_name ${dir} NULLS LAST, c.case_id DESC`;
-      } else if (sortBy === "reported_date") {
-          orderClause = `ORDER BY c.reported_date ${dir} NULLS LAST, c.case_id DESC`;
-      } else if (sortBy === "nationality") {
-          orderClause = `ORDER BY mp.nationality ${dir} NULLS LAST, c.case_id DESC`;
+      const sortMap = {
+          name: `NULLIF(TRIM(mp.first_name_th), '') IS NULL ASC, mp.first_name_th ${dir}`,
+          nationality: `NULLIF(TRIM(mp.nationality), '') IS NULL ASC, mp.nationality ${dir}`,
+          age: `mp.age IS NULL ASC, mp.age ${dir}`,
+          gender: `NULLIF(TRIM(mp.gender), '') IS NULL ASC, mp.gender ${dir}`,
+          missing_id_card_passport: `NULLIF(TRIM(mp.missing_id_card_passport), '') IS NULL ASC, mp.missing_id_card_passport ${dir}`,
+          missing_location: `NULLIF(TRIM(c.detected_location_province), '') IS NULL ASC, c.detected_location_province ${dir}`,
+          missing_date: `c.missing_date IS NULL ASC, c.missing_date ${dir}`,
+          reported_date: `c.reported_date IS NULL ASC, c.reported_date ${dir}`,
+          status: `c.found_date IS NULL ASC, c.found_date ${dir}`
+      };
+      if (sortMap[sortBy]) {
+          orderClause = `ORDER BY ${sortMap[sortBy]}, c.case_id DESC`;
       }
     }
 
@@ -86,16 +93,20 @@ exports.getDashboardStats = async (req, res) => {
     const dataQuery = `
       SELECT 
         mp.missing_person_id,
-        mp.missing_person_name as first_name_th, -- แกล้ง map ให้เข้ากับคอมโพเนนต์เก่า
-        '' as last_name_th,
+        mp.first_name_th,
+        mp.last_name_th,
+        mp.first_name_en,
+        mp.last_name_en,
         mp.age,
         mp.gender,
         mp.nationality,
-        c.reported_date as detected_date,
+        mp.missing_id_card_passport,
+        mp.passport_number,
+        c.case_id,
+        c.detected_location_province as address,
+        c.detected_location_details,
+        c.missing_date as detected_date,
         c.found_date as return_date,
-        c.police_station as address,
-        c.case_number as national_id,
-        c.photo_url as passport_id,
         c.operation_result as result
       FROM missing_persons mp 
       LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id

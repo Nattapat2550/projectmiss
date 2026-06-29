@@ -6,15 +6,22 @@ import Link from "next/link";
 import { ChevronLeft, Save, X, FileSpreadsheet } from "lucide-react";
 import Swal from 'sweetalert2';
 import SingleImageField from "@/components/form/single-image-field";
+import { useAddressOptions } from "@/hooks/useAddressOptions";
+import AutocompleteInput from "@/components/ui/AutocompleteInput";
+import { ALL_NATIONALITIES } from "@/constants/nationalities";
 
 export default function CreateMissingPerson() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ปรับ State ให้ตรงกับโครงสร้าง missing_persons และ cases ใน database
   const [formData, setFormData] = useState({
-    missing_person_name: "", 
+    missing_first_name_th: "",
+    missing_middle_name_th: "",
+    missing_last_name_th: "",
+    missing_first_name_en: "",
+    missing_middle_name_en: "",
+    missing_last_name_en: "",
     age: "", 
     gender: "",
     nationality: "", 
@@ -22,16 +29,45 @@ export default function CreateMissingPerson() {
     missing_id_card_passport: "",
     missing_date: "", 
     missing_time: "", 
-    missing_location: "",
-    last_seen_location_province: "", 
+    detected_location_details: "",
+    detected_location_sub_district: "", 
+    detected_location_district: "", 
+    detected_location_province: "", 
     incident_summary: "", 
-    informant_name: "",
+    informant_first_name_th: "",
+    informant_middle_name_th: "",
+    informant_last_name_th: "",
+    informant_first_name_en: "",
+    informant_middle_name_en: "",
+    informant_last_name_en: "",
+    informant_age: "",
+    informant_gender: "",
+    informant_nationality: "",
+    informant_id_card_passport: "",
+    informant_phone: "",
+    informant_email: "",
+    relationship: "",
     police_station: "", 
     human_trafficking_indicators: false, 
     notes: "", 
   });
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
+
+  const handleSelectDetDistrict = (opt: any) => {
+    const { district, province } = opt.extra;
+    handleInputChange({ target: { name: "detected_location_district", value: district } } as any);
+    handleInputChange({ target: { name: "detected_location_province", value: province } } as any);
+  };
+
+  const handleSelectDetSubDistrict = (opt: any) => {
+    const { subDistrict, district, province } = opt.extra;
+    handleInputChange({ target: { name: "detected_location_sub_district", value: subDistrict } } as any);
+    handleInputChange({ target: { name: "detected_location_district", value: district } } as any);
+    handleInputChange({ target: { name: "detected_location_province", value: province } } as any);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -74,7 +110,6 @@ export default function CreateMissingPerson() {
 
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
-      // เปลี่ยน Endpoint เป็น API ของ Missing
       const res = await fetch(`${backendUrl}/api/v1/missing`, {
         method: "POST", 
         headers: {
@@ -113,7 +148,6 @@ export default function CreateMissingPerson() {
           <ChevronLeft size={32} />
           <span>เพิ่มข้อมูลใหม่ (บุคคลสูญหาย)</span>
         </button>
-        {/* เปลี่ยน Link ไปหน้า missing-upload ตามที่ขอ */}
         <Link href="/missing-upload">
           <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 border border-emerald-500/50 rounded-lg hover:bg-emerald-500/20 font-bold transition text-sm cursor-pointer mt-4">
             <FileSpreadsheet size={18} /> อัพโหลดจากไฟล์ Excel
@@ -131,20 +165,28 @@ export default function CreateMissingPerson() {
         </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลบุคคลสูญหาย</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          <div><label className={labelClass}>ชื่อ - สกุล ผู้สูญหาย *</label><input required type="text" name="missing_person_name" value={formData.missing_person_name} onChange={handleInputChange} className={inputClass} /></div>
-          <div className="grid grid-cols-2 gap-5">
-            <div><label className={labelClass}>อายุ (ปี)</label><input type="number" name="age" value={formData.age} onChange={handleInputChange} className={inputClass} /></div>
-            <div><label className={labelClass}>เพศ</label>
-              <select name="gender" value={formData.gender} onChange={handleInputChange} className={inputClass}>
-                <option value="">ไม่ระบุ</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
-              </select>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>ชื่อต้น (ไทย) *</label><input required type="text" name="missing_first_name_th" value={formData.missing_first_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อกลาง (ไทย)</label><input type="text" name="missing_middle_name_th" value={formData.missing_middle_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>นามสกุล (ไทย) *</label><input required type="text" name="missing_last_name_th" value={formData.missing_last_name_th} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>ชื่อต้น (อังกฤษ)</label><input type="text" name="missing_first_name_en" value={formData.missing_first_name_en} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อกลาง (อังกฤษ)</label><input type="text" name="missing_middle_name_en" value={formData.missing_middle_name_en} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>นามสกุล (อังกฤษ)</label><input type="text" name="missing_last_name_en" value={formData.missing_last_name_en} onChange={handleInputChange} className={inputClass} /></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-          <div><label className={labelClass}>สัญชาติ (Nationality)</label><input type="text" name="nationality" value={formData.nationality} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>อายุ (ปี)</label><input type="number" name="age" value={formData.age} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เพศ</label>
+            <select name="gender" value={formData.gender} onChange={handleInputChange} className={inputClass}>
+              <option value="">ไม่ระบุ</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
+            </select>
+          </div>
+          <div><label className={labelClass}>สัญชาติ (Nationality)</label><AutocompleteInput name="nationality" value={formData.nationality} options={ALL_NATIONALITIES} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
           <div><label className={labelClass}>เลขประจำตัวประชาชน/พาสปอร์ต</label><input type="text" name="missing_id_card_passport" value={formData.missing_id_card_passport} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>หมายเลขหนังสือเดินทาง (ถ้ามี)</label><input type="text" name="passport_number" value={formData.passport_number} onChange={handleInputChange} className={inputClass} /></div>
         </div>
@@ -155,9 +197,15 @@ export default function CreateMissingPerson() {
           <div><label className={labelClass}>เวลาที่คาดว่าสูญหาย</label><input type="time" name="missing_time" value={formData.missing_time} onChange={handleInputChange} className={inputClass} /></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          <div><label className={labelClass}>สถานที่สูญหาย (จุดที่พบเห็นครั้งสุดท้าย)</label><input type="text" name="missing_location" value={formData.missing_location} onChange={handleInputChange} className={inputClass} /></div>
-          <div><label className={labelClass}>จังหวัดที่สูญหาย</label><input type="text" name="last_seen_location_province" value={formData.last_seen_location_province} onChange={handleInputChange} className={inputClass} /></div>
+        <div className="mb-5">
+          <label className={labelClass}>สถานที่พบเห็นครั้งสุดท้าย (รายละเอียด) *</label>
+          <textarea required name="detected_location_details" value={formData.detected_location_details} onChange={handleInputChange} rows={2} className={inputClass} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>จังหวัด</label><AutocompleteInput name="detected_location_province" value={formData.detected_location_province} options={detProvinces} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เขต/อำเภอ</label><AutocompleteInput name="detected_location_district" value={formData.detected_location_district} options={detDistrictOptions} onChange={handleInputChange} onSelectOption={handleSelectDetDistrict} className={inputClass} /></div>
+          <div><label className={labelClass}>แขวง/ตำบล</label><AutocompleteInput name="detected_location_sub_district" value={formData.detected_location_sub_district} options={detSubDistrictOptions} onChange={handleInputChange} onSelectOption={handleSelectDetSubDistrict} className={inputClass} /></div>
         </div>
 
         <div className="mb-5">
@@ -166,8 +214,29 @@ export default function CreateMissingPerson() {
         </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลการรับแจ้ง</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>ชื่อต้น (ผู้แจ้ง)</label><input type="text" name="informant_first_name_th" value={formData.informant_first_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อกลาง (ผู้แจ้ง)</label><input type="text" name="informant_middle_name_th" value={formData.informant_middle_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>นามสกุล (ผู้แจ้ง)</label><input type="text" name="informant_last_name_th" value={formData.informant_last_name_th} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>อายุ (ปี)</label><input type="number" name="informant_age" value={formData.informant_age} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เพศ</label>
+            <select name="informant_gender" value={formData.informant_gender} onChange={handleInputChange} className={inputClass}>
+              <option value="">ไม่ระบุ</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
+            </select>
+          </div>
+          <div><label className={labelClass}>สัญชาติ</label><AutocompleteInput name="informant_nationality" value={formData.informant_nationality} options={ALL_NATIONALITIES} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          <div><label className={labelClass}>ชื่อ - สกุล ผู้แจ้ง</label><input type="text" name="informant_name" value={formData.informant_name} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เลขประจำตัวประชาชน (ผู้แจ้ง)</label><input type="text" name="informant_id_card_passport" value={formData.informant_id_card_passport} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ความสัมพันธ์</label><input type="text" name="relationship" value={formData.relationship} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เบอร์โทรศัพท์ (ผู้แจ้ง)</label><input type="text" name="informant_phone" value={formData.informant_phone} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>อีเมล (ผู้แจ้ง)</label><input type="email" name="informant_email" value={formData.informant_email} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+        
+        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">สถานีตำรวจ</h3>
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-5">
           <div><label className={labelClass}>สถานีตำรวจที่รับแจ้ง</label><input type="text" name="police_station" value={formData.police_station} onChange={handleInputChange} className={inputClass} /></div>
         </div>
 

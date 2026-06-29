@@ -3,15 +3,15 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from 'sweetalert2';
+
 interface RightPanelProps {
-  type: "repatriated" | "illegal";
   data: any;
   note: string;
   setNote: (value: string) => void;
   onEditClick: () => void; 
 }
 
-export default function RightPanel({ type, data, note, setNote, onEditClick }: RightPanelProps) {
+export default function RightPanel({ data, note, setNote, onEditClick }: RightPanelProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
@@ -20,33 +20,20 @@ export default function RightPanel({ type, data, note, setNote, onEditClick }: R
     try {
       setIsSavingNote(true);
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const endpoint = type === "repatriated" ? "repatriated" : "illegal";
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
-      // 🟢 กลับมาใช้ FormData เพื่อให้เข้ากับ Multer ของ Backend
+      // Use PUT to update the missing person. For now, since we only want to update the note,
+      // we need to make sure our backend handles partial updates or we send the full payload.
+      // We will create/modify the PUT endpoint to handle note updates.
       const submitData = new FormData();
-      const payload = { ...data, note: note };
-
-      // ฟอร์แมตวันที่และตัวเลข
-      if (type === "repatriated") {
-        payload.number_of_case = parseInt(payload.number_of_case) || 0;
-        payload.number_of_warrant = parseInt(payload.number_of_warrant) || 0;
-        payload.age = parseInt(payload.age) || "";
-        if (payload.date_of_birth) payload.date_of_birth = String(payload.date_of_birth).split("T")[0];
-        if (payload.return_date) payload.return_date = String(payload.return_date).split("T")[0];
-      } else {
-        if (payload.detected_date) payload.detected_date = String(payload.detected_date).split("T")[0];
-      }
-
-      // นำข้อมูลเข้า FormData อย่างปลอดภัย (ตัด null/undefined ออก)
-      Object.keys(payload).forEach(key => {
-        if (payload[key] !== null && payload[key] !== undefined && typeof payload[key] !== 'object') {
-          submitData.append(key, String(payload[key]));
+      Object.keys(data).forEach(key => {
+        if (data[key] !== null && data[key] !== undefined && typeof data[key] !== 'object') {
+          submitData.append(key, String(data[key]));
         }
       });
+      submitData.set('notes', note); // Update the note
 
-      // 🟢 ส่งข้อมูลแบบไร้ Content-Type (ให้ Browser ตั้งค่า Boundary เองสำหรับ FormData)
-      const res = await fetch(`${backendUrl}/api/v1/immigrants/${endpoint}/${data.id}`, {
+      const res = await fetch(`${backendUrl}/api/v1/missing/${data.missing_person_id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -79,10 +66,9 @@ export default function RightPanel({ type, data, note, setNote, onEditClick }: R
   };
 
   const handleDelete = async () => {
-    
     const result = await Swal.fire({
       title: 'ยืนยันการลบ?',
-      text: "ยืนยันที่จะลบประวัติของบุคคลนี้ออกจากระบบอย่างถาวร?",
+      text: "ยืนยันที่จะลบข้อมูลผู้สูญหายรายนี้ออกจากระบบอย่างถาวร?",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444', // สีแดง (Danger)
@@ -91,17 +77,14 @@ export default function RightPanel({ type, data, note, setNote, onEditClick }: R
       cancelButtonText: 'ยกเลิก'
     });
 
-    // ถ้าผู้ใช้กด "ยกเลิก" หรือปิดหน้าต่าง ให้หยุดการทำงาน (return ออกไป)
     if (!result.isConfirmed) return;
 
     try {
       setIsDeleting(true);
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const endpoint = type === "repatriated" ? "repatriated" : "illegal";
-      
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
-      const res = await fetch(`${backendUrl}/api/v1/immigrants/${endpoint}/${data.id}`, {
+      const res = await fetch(`${backendUrl}/api/v1/missing/${data.missing_person_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -143,50 +126,46 @@ export default function RightPanel({ type, data, note, setNote, onEditClick }: R
     <div className="flex flex-col gap-6 w-full">
       <div className="bg-(--container) border border-(--wrapper) rounded-2xl p-6 shadow-sm transition-colors">
         
-        {type === "repatriated" ? (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-bold text-(--header) mb-2">ข้อมูลเพิ่มเติม</h3>
-            
-            <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-              <span className="font-bold text- (--foreground) ]dark:text-slate-300">วันที่ส่งกลับ</span>
-              <span className="font-mono font-semibold">{formatDate(data.return_date)}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-              <span className="font-bold text- (--foreground) ]dark:text-slate-300">จำนวน Case ID</span>
-              <span className="font-semibold font-mono">{data.number_of_case ?? 0}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-              <span className="font-bold text- (--foreground) ]dark:text-slate-300">จำนวนหมายจับ</span>
-              <span className={`font-semibold font-mono ${data.number_of_warrant > 0 ? "text-(--redText)" : ""}`}>
-                {data.number_of_warrant ?? 0}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-sm pb-1">
-              <span className="font-bold text- (--foreground) ]dark:text-slate-300">ช่องทางส่งกลับ</span>
-              <span className="font-semibold">{data.channel || "-"}</span>
-            </div>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xl font-bold text-(--header) mb-2">ข้อมูลคดี</h3>
+          
+          <div className={`w-full text-center py-2 px-4 rounded-lg font-bold text-sm border shadow-sm ${data.found_date ? 'bg-green-100 text-green-700 border-green-300' : 'bg-(--redBG) text-(--redText) border-(--redBorder)'}`}>
+            {data.found_date ? `พบตัวแล้ว (${formatDate(data.found_date)})` : "ยังไม่พบตัว"}
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-bold text-(--header) mb-2">ข้อมูลคัดกรอง</h3>
-            
-            <div className={`w-full text-center py-2 px-4 rounded-lg font-bold text-sm border shadow-sm ${data.is_victim ? 'bg-red-100 text-red-700 border-red-300' : 'bg-(--yellowBG) text-(--yellowText) border-(--yellowBorder)'}`}>
-              {data.is_victim ? "เข้าข่ายเป็นผู้เสียหายจากการค้ามนุษย์" : "ไม่เป็นผู้เสียหายจากการค้ามนุษย์"}
-            </div>
 
-            <div className="bg-background border border-(--wrapper) rounded-md p-3 text-xs text- (--foreground) ]dark:text-slate-300 font-medium leading-relaxed shadow-inner min-h-15 mt-2 whitespace-pre-wrap">
-              {data.screening_details || "ไม่มีรายละเอียดการคัดกรองระบุไว้"}
-            </div>
+          <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2 mt-4">
+            <span className="font-bold text-(--foreground) dark:text-slate-300">วันที่รับแจ้ง</span>
+            <span className="font-mono font-semibold">{formatDate(data.reported_date)}</span>
           </div>
-        )}
+
+          <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
+            <span className="font-bold text-(--foreground) dark:text-slate-300">สถานีตำรวจ</span>
+            <span className="font-semibold">{data.police_station || "-"}</span>
+          </div>
+
+          <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
+            <span className="font-bold text-(--foreground) dark:text-slate-300">พนักงานสอบสวน</span>
+            <span className="font-semibold">{data.investigating_officer || "-"}</span>
+          </div>
+          
+          <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
+            <span className="font-bold text-(--foreground) dark:text-slate-300">ผลการปฏิบัติ</span>
+            <span className="font-semibold">{data.operation_result || "-"}</span>
+          </div>
+
+          {data.human_trafficking_indicators || data.victim_classification ? (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700">
+               <span className="font-bold">ข้อมูลการค้ามนุษย์:</span><br/>
+               {data.human_trafficking_indicators && <span>- ข้อบ่งชี้: {data.human_trafficking_indicators}<br/></span>}
+               {data.victim_classification && <span>- การคัดแยกเหยื่อ: {data.victim_classification}</span>}
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex flex-col gap-2 mt-6 border-t border-(--wrapper) pt-4">
           <label className="text-lg font-bold text-(--header)">หมายเหตุระบบ</label>
           <textarea
-            value={note}
+            value={note || ""}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             className="w-full bg-background border border-(--wrapper) text-foreground rounded-md p-3 text-xs focus:outline-none focus:ring-2 focus:ring-(--header)/40 shadow-inner"

@@ -16,7 +16,9 @@ router.post("/", protect, upload.single("photo"), missingController.createMissin
 router.post("/upload", protect, upload.single("file"), missingController.uploadMissingExcel);
 router.get("/upload-progress/:jobId", missingController.getUploadProgress);
 
-// 📌 API สำหรับดึงข้อมูลบุคคลสูญหายรายเดียว
+// 📌 API สำหรับดึงข้อมูลบุคคลสูญหายรายเดียว และ แก้ไขข้อมูล
 router.get("/:id", missingController.getMissingPersonById);
+router.put("/:id", protect, upload.single("photo"), missingController.updateMissingPerson);
+router.delete("/:id", protect, missingController.deleteMissingPerson);
 
 module.exports = router;

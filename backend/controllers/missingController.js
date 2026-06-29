@@ -5,6 +5,113 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const { uploadToDrive } = require("../services/googleDriveService"); 
+const { safeParseDate, normalizeNationality, processName, findValue, determineGender, parseThaiDateToDate } = require("../utils/missingHelpers");
+
+let thaiAddresses = [];
+try {
+    const addressPath = path.join(__dirname, '../../frontend/public/thai_addresses.json');
+    thaiAddresses = JSON.parse(fs.readFileSync(addressPath, 'utf-8'));
+} catch (err) {
+    console.error("Could not load thai_addresses.json for address parsing", err);
+}
+
+const splitThaiAddress = (fullAddress) => {
+    if (!fullAddress || typeof fullAddress !== 'string') {
+        return { details: "ไม่ระบุ", sub_district: null, district: null, province: null };
+    }
+    
+    let str = fullAddress.trim();
+    let province = null, district = null, sub_district = null;
+    
+    // หา แขวง-เขต ที่เขียนรวมกัน
+    const combinedMatch = str.match(/(?:แขวง-เขต|แขวง\/เขต|เขต\/แขวง|เขต-แขวง)\s*([^\s]+)/);
+    if (combinedMatch) {
+        district = combinedMatch[1];
+        sub_district = combinedMatch[1];
+        str = str.replace(combinedMatch[0], '').trim();
+    }
+    
+    // หา จังหวัด
+    const provMatch = str.match(/(?:จ\.| จว\.|จังหวัด)\s*([^\s]+)/) || str.match(/\s(กรุงเทพมหานคร|กรุงเทพฯ|กทม\.?|เชียงใหม่|ภูเก็ต|โคราช|ชลบุรี)$/);
+    if (provMatch) {
+        province = provMatch[1];
+        str = str.replace(provMatch[0], '').trim();
+    }
+    
+    // หา อำเภอ / เขต
+    const distMatch = str.match(/(?:อ\.|อำเภอ|เขต)\s*([^\s]+)/);
+    if (distMatch) {
+        district = distMatch[1];
+        str = str.replace(distMatch[0], '').trim();
+    }
+    
+    // หา ตำบล / แขวง
+    const subMatch = str.match(/(?:ต\.|ตำบล|แขวง)\s*([^\s]+)/);
+    if (subMatch) {
+        sub_district = subMatch[1];
+        str = str.replace(subMatch[0], '').trim();
+    }
+    
+    if (province) {
+        let p = province.replace(/^(จังหวัด|จ\.|จว\.)/, '').trim();
+        if (["กรุงเทพฯ", "กรุงเทพ", "กทม", "กทม.", "กรุงเทพมหานคร"].includes(p)) province = "กรุงเทพมหานคร";
+        else if (p === "โคราช") province = "นครราชสีมา";
+        else {
+            const found = thaiAddresses.find(addr => addr.province.includes(p) || p.includes(addr.province));
+            province = found ? found.province : p;
+        }
+    }
+    
+    if (district) {
+        let d = district.replace(/^(อำเภอ|เขต|อ\.)/, '').trim();
+        if (province && thaiAddresses.length > 0) {
+            const found = thaiAddresses.find(addr => addr.province === province && (addr.amphoe.includes(d) || d.includes(addr.amphoe)));
+            district = found ? found.amphoe : d;
+        } else if (thaiAddresses.length > 0) {
+            const found = thaiAddresses.find(addr => addr.amphoe.includes(d) || d.includes(addr.amphoe));
+            district = found ? found.amphoe : d;
+        } else district = d;
+    }
+    
+    if (sub_district) {
+        let s = sub_district.replace(/^(ตำบล|แขวง|ต\.)/, '').trim();
+        if (province && district && thaiAddresses.length > 0) {
+            const found = thaiAddresses.find(addr => addr.province === province && addr.amphoe === district && (addr.district.includes(s) || s.includes(addr.district)));
+            sub_district = found ? found.district : s;
+        } else if (province && thaiAddresses.length > 0) {
+            const found = thaiAddresses.find(addr => addr.province === province && (addr.district.includes(s) || s.includes(addr.district)));
+            sub_district = found ? found.district : s;
+        } else if (thaiAddresses.length > 0) {
+            const found = thaiAddresses.find(addr => addr.district.includes(s) || s.includes(addr.district));
+            sub_district = found ? found.district : s;
+        } else sub_district = s;
+    }
+
+    if (sub_district && (!district || !province) && thaiAddresses.length > 0) {
+        const matches = thaiAddresses.filter(addr => addr.district === sub_district);
+        if (matches.length > 0) {
+            const uniqueDistricts = new Set(matches.map(m => m.amphoe));
+            const uniqueProvinces = new Set(matches.map(m => m.province));
+            if (uniqueDistricts.size === 1 && uniqueProvinces.size === 1) {
+                if (!district) district = matches[0].amphoe;
+                if (!province) province = matches[0].province;
+            }
+        }
+    } else if (district && !province && thaiAddresses.length > 0) {
+        const matches = thaiAddresses.filter(addr => addr.amphoe === district);
+        if (matches.length > 0) {
+            const uniqueProvinces = new Set(matches.map(m => m.province));
+            if (uniqueProvinces.size === 1) province = matches[0].province;
+        }
+    }
+    
+    return {
+        details: str || "ไม่ระบุ",
+        sub_district,
+        district,
+        province
+    };
+};
 
 if (!global.uploadProgress) { global.uploadProgress = {}; }
 
@@ -161,10 +268,62 @@ exports.uploadMissingExcel = async (req, res) => {
             rawData[i]._image = imagesMap[i + 1] || null;
         }
 
-        rawData = rawData.filter(row => 
-            getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]) || 
-            getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"])
-        );
+        let filteredData = rawData.filter(row => {
+            const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "";
+            const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]) || "";
+            const parsedMissing = processName(rawMissingName);
+            const parsedReporter = processName(rawReporterName);
+            return parsedMissing.hasName || parsedReporter.hasName;
+        });
+
+        // แยกคนกรณีเจอคำว่า "และ"
+        let splitData = [];
+        for (let row of filteredData) {
+            const rawMissingName = String(getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "");
+            if (rawMissingName.includes(" และ ") || rawMissingName.includes("และ")) {
+                const names = rawMissingName.split(/\s*และ\s*/).filter(n => n.trim() !== "");
+                for (let i = 0; i < names.length; i++) {
+                    let newRow = { ...row };
+                    
+                    const nameKey = Object.keys(newRow).find(k => k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "ชื่อบุคคลสูญหาย" || k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "ชื่อ-สกุลผู้สูญหาย");
+                    if (nameKey) newRow[nameKey] = names[i].trim();
+
+                    const ageKey = Object.keys(newRow).find(k => k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "อายุ");
+                    if (ageKey) {
+                        const valStr = String(newRow[ageKey] || "");
+                        const parts = valStr.split(/\s*และ\s*|\s*\/\s*|\s*,\s*/).filter(p => p.trim() !== "");
+                        if (parts.length > 1) newRow[ageKey] = parts[i] || parts[0];
+                    }
+
+                    const genderKey = Object.keys(newRow).find(k => k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "เพศ" || k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "gender");
+                    if (genderKey) {
+                        const valStr = String(newRow[genderKey] || "");
+                        const parts = valStr.split(/\s*และ\s*|\s*\/\s*|\s*,\s*/).filter(p => p.trim() !== "");
+                        if (parts.length > 1) newRow[genderKey] = parts[i] || parts[0];
+                    }
+
+                    const idKey = Object.keys(newRow).find(k => k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "เลขประจำตัวประชาชน/เลขหนังสือเดินทางผู้สูญหาย" || k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "เลขประจำตัวประชาชนผู้สูญหาย");
+                    if (idKey) {
+                        const valStr = String(newRow[idKey] || "");
+                        const parts = valStr.split(/\s*และ\s*|\s*\/\s*|\s*,\s*/).filter(p => p.trim() !== "");
+                        if (parts.length > 1) newRow[idKey] = parts[i] || parts[0];
+                    }
+
+                    const passKey = Object.keys(newRow).find(k => k.replace(/[\s\r\n\u200B-\u200D\uFEFF]+/g, '') === "หมายเลขหนังสือเดินทาง");
+                    if (passKey) {
+                        const valStr = String(newRow[passKey] || "");
+                        const parts = valStr.split(/\s*และ\s*|\s*\/\s*|\s*,\s*/).filter(p => p.trim() !== "");
+                        if (parts.length > 1) newRow[passKey] = parts[i] || parts[0];
+                    }
+
+                    splitData.push(newRow);
+                }
+            } else {
+                splitData.push(row);
+            }
+        }
+        
+        rawData = splitData;
 
         const mappedData = [];
 
@@ -180,6 +339,26 @@ exports.uploadMissingExcel = async (req, res) => {
                 photo_url_preview = getVal(row, ["รูปภาพ"]);
             }
 
+            const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "";
+            const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]) || "";
+            const parsedMissing = processName(rawMissingName);
+            const parsedReporter = processName(rawReporterName);
+            const parsedLocation = splitThaiAddress(getVal(row, ["สถานที่สูญหาย หรือ คาดว่าสูญหาย", "สถานที่สูญหาย", "จุดที่พบเห็นครั้งสุดท้าย/จังหวัดที่เดินทางออก", "จุดที่พบเห็นครั้งสุดท้าย"]) || "");
+
+            const missing_first_name_th = (parsedMissing.hasName && parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : "ไม่ระบุ";
+            const missing_middle_name_th = (parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null;
+            const missing_last_name_th = (parsedMissing.hasName && parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : "ไม่ระบุ";
+            const missing_first_name_en = (parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : null;
+            const missing_middle_name_en = (!parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null;
+            const missing_last_name_en = (parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : null;
+
+            const reporter_first_name_th = (parsedReporter.hasName && parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : "ไม่ระบุ";
+            const reporter_middle_name_th = (parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null;
+            const reporter_last_name_th = (parsedReporter.hasName && parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : "ไม่ระบุ";
+            const reporter_first_name_en = (parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : null;
+            const reporter_middle_name_en = (!parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null;
+            const reporter_last_name_en = (parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : null;
+
             const mappedRow = {
                 row_index: i + 1,
                 report_date: formatExcelDate(getVal(row, ["วัน/เดือน/ปี ที่รับแจ้ง", "วันที่รับแจ้งวาม", "วันที่รับแจ้ง"])),
@@ -187,7 +366,12 @@ exports.uploadMissingExcel = async (req, res) => {
                 case_no: getVal(row, ["เลขคดี", "เลขคดีที่"]), 
                 pjv_number: getVal(row, ["เลข ปจว. ที่", "เลข ปจว."]),
                 pjv_file_url: getVal(row, ["อัพโหลด ปจว. รับแจ้งเหตุฯ (ถ้ามี) - PDF file หรือ ภาพถ่าย", "อัพโหลด ปจว."]),
-                reporter_name: getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]),
+                reporter_first_name_th,
+                reporter_middle_name_th,
+                reporter_last_name_th,
+                reporter_first_name_en,
+                reporter_middle_name_en,
+                reporter_last_name_en,
                 reporter_id_card: getVal(row, ["เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้แจ้ง", "เลขประจำตัวประชาชนผู้แจ้ง"]),
                 reporter_phone: getVal(row, ["เบอร์โทรศัพท์ ผู้แจ้ง", "เบอร์โทรศัพท์ผู้แจ้ง"]),
                 reporter_email: getVal(row, ["อีเมล ผู้แจ้ง", "อีเมลผู้แจ้ง"]),
@@ -211,21 +395,27 @@ exports.uploadMissingExcel = async (req, res) => {
                 division_11: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 11"]),
                 division_12: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 12"]),
                 division_13: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 13"]),
-                missing_person_name: getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]),
+                missing_first_name_th,
+                missing_middle_name_th,
+                missing_last_name_th,
+                missing_first_name_en,
+                missing_middle_name_en,
+                missing_last_name_en,
                 missing_id_card: getVal(row, ["เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้สูญหาย", "เลขประจำตัวประชาชนผู้สูญหาย"]),
                 age: getVal(row, ["อายุ"]),
-                gender: getVal(row, ["เพศ"]),
-                nationality: getVal(row, ["สัญชาติ", "สัญชาติของผู้สูญหาย"]),
+                gender: determineGender(row, parsedMissing.prefix) || getVal(row, ["เพศ"]),
+                nationality: normalizeNationality(getVal(row, ["สัญชาติ", "สัญชาติของผู้สูญหาย"])),
                 passport_id: getVal(row, ["หมายเลขหนังสือเดินทาง"]),
-                missing_date: formatExcelDate(getVal(row, ["วันที่สูญหาย หรือ คาดว่าสูญหาย", "วันที่หาย"])),
+                missing_date: formatExcelDate(getVal(row, ["วันที่สูญหาย หรือ คาดว่าสูญหาย", "วันที่หาย", "วันที่พบเห็นครั้งสุดท้าย"])),
                 missing_time: formatExcelTime(getVal(row, ["เวลาสูญหาย หรือ คาดว่าสูญหาย", "เวลาสูญหาย"])),
-                missing_location: getVal(row, ["สถานที่สูญหาย หรือ คาดว่าสูญหาย", "สถานที่สูญหาย"]),
+                detected_location_details: parsedLocation.details,
+                detected_location_sub_district: parsedLocation.sub_district,
+                detected_location_district: parsedLocation.district,
+                detected_location_province: parsedLocation.province,
                 entry_channel: getVal(row, ["ช่องทางที่เดินทางเข้ามาในราชอาณาจักร"]),
                 entry_checkpoint: getVal(row, ["ชื่อด่านและจังหวัดที่เดินทางเข้า"]),
                 airline: getVal(row, ["สายการบิน (ถ้ามี)"]),
                 entry_date: formatExcelDate(getVal(row, ["วันที่เดินทางเข้า"])),
-                last_seen_location: getVal(row, ["จุดที่พบเห็นครั้งสุดท้าย/จังหวัดที่เดินทางออก"]),
-                last_seen_date: formatExcelDate(getVal(row, ["วันที่พบเห็นครั้งสุดท้าย"])),
                 photo_url: photo_url_preview,
                 _imageData: row._image,
                 _original_photo_url: getVal(row, ["รูปภาพ"]),
@@ -325,18 +515,17 @@ exports.uploadMissingExcel = async (req, res) => {
 
                 // 2. ตาราง informants 
                 let informantQuery = `
-                    INSERT INTO informants (informant_name, informant_contact_channel, informant_id_card_passport, informant_phone, informant_email) 
-                    VALUES ($1, $2, $3, $4, $5)
-                    ON CONFLICT (informant_name) 
-                    DO UPDATE SET 
-                        informant_contact_channel = EXCLUDED.informant_contact_channel,
-                        informant_id_card_passport = EXCLUDED.informant_id_card_passport,
-                        informant_phone = EXCLUDED.informant_phone,
-                        informant_email = EXCLUDED.informant_email
+                    INSERT INTO informants (first_name_th, middle_name_th, last_name_th, first_name_en, middle_name_en, last_name_en, informant_contact_channel, informant_id_card_passport, informant_phone, informant_email) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     RETURNING informant_id
                 `;
                 let informantRes = await client.query(informantQuery, [
-                    validateLen(mappedRow.reporter_name, 255), 
+                    validateLen(mappedRow.reporter_first_name_th, 255),
+                    validateLen(mappedRow.reporter_middle_name_th, 255),
+                    validateLen(mappedRow.reporter_last_name_th, 255),
+                    validateLen(mappedRow.reporter_first_name_en, 255),
+                    validateLen(mappedRow.reporter_middle_name_en, 255),
+                    validateLen(mappedRow.reporter_last_name_en, 255),
                     mappedRow.reporter_contact, 
                     validateLen(mappedRow.reporter_id_card, 50), 
                     validateLen(mappedRow.reporter_phone, 50), 
@@ -348,19 +537,18 @@ exports.uploadMissingExcel = async (req, res) => {
                 let ageInt = parseInt(mappedRow.age);
                 let validAge = isNaN(ageInt) ? null : ageInt;
                 let missingQuery = `
-                    INSERT INTO missing_persons (missing_person_name, age, gender, nationality, passport_number, missing_id_card_passport) 
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                    ON CONFLICT (missing_person_name) 
-                    DO UPDATE SET 
-                        age = EXCLUDED.age,
-                        gender = EXCLUDED.gender,
-                        nationality = EXCLUDED.nationality,
-                        passport_number = EXCLUDED.passport_number,
-                        missing_id_card_passport = EXCLUDED.missing_id_card_passport
+                    INSERT INTO missing_persons (first_name_th, middle_name_th, last_name_th, first_name_en, middle_name_en, last_name_en, age, gender, nationality, passport_number, missing_id_card_passport) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                     RETURNING missing_person_id
                 `;
                 let missingRes = await client.query(missingQuery, [
-                    validateLen(mappedRow.missing_person_name, 255), validAge, 
+                    validateLen(mappedRow.missing_first_name_th, 255),
+                    validateLen(mappedRow.missing_middle_name_th, 255),
+                    validateLen(mappedRow.missing_last_name_th, 255),
+                    validateLen(mappedRow.missing_first_name_en, 255),
+                    validateLen(mappedRow.missing_middle_name_en, 255),
+                    validateLen(mappedRow.missing_last_name_en, 255),
+                    validAge, 
                     validateLen(mappedRow.gender, 50), validateLen(mappedRow.nationality, 100), 
                     validateLen(mappedRow.passport_id, 50), validateLen(mappedRow.missing_id_card, 50)
                 ]);
@@ -371,19 +559,19 @@ exports.uploadMissingExcel = async (req, res) => {
                     INSERT INTO cases (
                         agency_id, informant_id, missing_person_id, relationship,
                         entry_channel, entry_checkpoint_province, airline, entry_date, 
-                        last_seen_location_province, last_seen_date, photo_url,
+                        detected_location_details, detected_location_sub_district, detected_location_district, detected_location_province, photo_url,
                         reported_date, receiving_channel, incident_summary, case_number, 
                         human_trafficking_indicators, victim_classification, human_trafficking_type, 
                         action_taken, operation_result, found_date, notes, police_station,
-                        investigating_officer, missing_date, missing_time, missing_location, pjv_number, pjv_file_url
+                        investigating_officer, missing_date, missing_time, pjv_number, pjv_file_url
                     ) VALUES (
                         $1, $2, $3, $4, 
                         $5, $6, $7, $8, 
-                        $9, $10, $11, 
-                        $12, $13, $14, $15, 
-                        $16, $17, $18, 
-                        $19, $20, $21, $22, $23, 
-                        $24, $25, $26, $27, $28, $29
+                        $9, $10, $11, $12, $13, 
+                        $14, $15, $16, $17, 
+                        $18, $19, $20, 
+                        $21, $22, $23, $24, $25, 
+                        $26, $27, $28, $29, $30
                     )
                 `;
                 
@@ -391,14 +579,14 @@ exports.uploadMissingExcel = async (req, res) => {
                     agency_id, informant_id, missing_person_id, validateLen(mappedRow.relationship, 100),
                     validateLen(mappedRow.entry_channel, 255), validateLen(mappedRow.entry_checkpoint, 255), 
                     validateLen(mappedRow.airline, 100), parseDateForDB(mappedRow.entry_date),
-                    validateLen(mappedRow.last_seen_location, 255), parseDateForDB(mappedRow.last_seen_date), drivePhotoUrl,
+                    mappedRow.detected_location_details, mappedRow.detected_location_sub_district, mappedRow.detected_location_district, mappedRow.detected_location_province, drivePhotoUrl,
                     parseDateForDB(mappedRow.report_date), validateLen(mappedRow.report_channel, 255), 
                     mappedRow.circumstances, validateLen(mappedRow.case_no, 100), 
                     mappedRow.human_trafficking_indicator, mappedRow.victim_screening, validateLen(mappedRow.trafficking_type, 255),
                     mappedRow.action_taken, mappedRow.operation_result, parseDateForDB(mappedRow.found_date), 
                     mappedRow.note, validateLen(stationCombined, 255),
                     validateLen(mappedRow.investigator, 255), parseDateForDB(mappedRow.missing_date), mappedRow.missing_time, 
-                    mappedRow.missing_location, validateLen(mappedRow.pjv_number, 100), mappedRow.pjv_file_url
+                    validateLen(mappedRow.pjv_number, 100), mappedRow.pjv_file_url
                 ]);
 
                 await client.query('COMMIT');
@@ -458,10 +646,11 @@ exports.getMissingPersons = async (req, res) => {
             const searchConditions = searchTerms.map(term => {
                 const likeParam = `%${term}%`;
                 const condition = `(
-                    mp.missing_person_name ILIKE $${paramIndex}
+                    mp.first_name_th ILIKE $${paramIndex}
+                    OR mp.last_name_th ILIKE $${paramIndex}
                     OR mp.missing_id_card_passport ILIKE $${paramIndex}
                     OR mp.passport_number ILIKE $${paramIndex}
-                    OR c.missing_location ILIKE $${paramIndex}
+                    OR c.detected_location_details ILIKE $${paramIndex}
                     OR c.police_station ILIKE $${paramIndex}
                 )`;
                 queryParams.push(likeParam);
@@ -478,10 +667,14 @@ exports.getMissingPersons = async (req, res) => {
         if (sortBy) {
             const dir = sortOrder.toLowerCase() === "desc" ? "DESC" : "ASC";
             const sortMap = {
-                name: `mp.missing_person_name ${dir} NULLS LAST`,
-                missing_date: `c.missing_date ${dir} NULLS LAST`,
-                missing_id_card_passport: `mp.missing_id_card_passport ${dir} NULLS LAST`,
-                missing_location: `c.missing_location ${dir} NULLS LAST`,
+                name: `NULLIF(TRIM(mp.first_name_th), '') IS NULL ASC, mp.first_name_th ${dir}`,
+                missing_date: `c.missing_date IS NULL ASC, c.missing_date ${dir}`,
+                missing_id_card_passport: `NULLIF(TRIM(mp.missing_id_card_passport), '') IS NULL ASC, mp.missing_id_card_passport ${dir}`,
+                missing_location: `NULLIF(TRIM(c.detected_location_province), '') IS NULL ASC, c.detected_location_province ${dir}`,
+                nationality: `NULLIF(TRIM(mp.nationality), '') IS NULL ASC, mp.nationality ${dir}`,
+                age: `mp.age IS NULL ASC, mp.age ${dir}`,
+                gender: `NULLIF(TRIM(mp.gender), '') IS NULL ASC, mp.gender ${dir}`,
+                status: `c.found_date IS NULL ASC, c.found_date ${dir}`,
             };
             if (sortMap[sortBy]) {
                 orderClause = `ORDER BY ${sortMap[sortBy]}, mp.missing_person_id DESC`;
@@ -492,7 +685,10 @@ exports.getMissingPersons = async (req, res) => {
         const dataQuery = `
             SELECT
                 mp.missing_person_id,
-                mp.missing_person_name,
+                mp.first_name_th,
+                mp.last_name_th,
+                mp.first_name_en,
+                mp.last_name_en,
                 mp.age,
                 mp.gender,
                 mp.nationality,
@@ -501,8 +697,10 @@ exports.getMissingPersons = async (req, res) => {
                 c.case_id,
                 c.missing_date,
                 c.missing_time,
-                c.missing_location,
-                c.last_seen_location_province,
+                c.detected_location_details,
+                c.detected_location_sub_district,
+                c.detected_location_district,
+                c.detected_location_province,
                 c.photo_url,
                 c.found_date,
                 c.reported_date,
@@ -551,7 +749,10 @@ exports.createMissingPerson = async (req, res) => {
     const client = await pool.connect();
     try {
         const {
-            missing_person_name,
+            missing_first_name_th,
+            missing_last_name_th,
+            missing_first_name_en,
+            missing_last_name_en,
             age,
             gender,
             nationality,
@@ -559,17 +760,23 @@ exports.createMissingPerson = async (req, res) => {
             missing_id_card_passport,
             missing_date,
             missing_time,
-            missing_location,
-            last_seen_location_province,
+            detected_location_details,
+            detected_location_sub_district,
+            detected_location_district,
+            detected_location_province,
             incident_summary,
-            informant_name,
+            informant_first_name_th,
+            informant_last_name_th,
+            informant_age,
+            informant_gender,
+            informant_nationality,
             police_station,
             human_trafficking_indicators,
             notes,
         } = req.body;
 
-        if (!missing_person_name || !missing_person_name.trim()) {
-            return res.status(400).json({ success: false, message: "กรุณากรอกชื่อบุคคลสูญหาย" });
+        if (!missing_first_name_th || !missing_first_name_th.trim() || !missing_last_name_th || !missing_last_name_th.trim()) {
+            return res.status(400).json({ success: false, message: "กรุณากรอกชื่อและนามสกุลบุคคลสูญหาย" });
         }
 
         await client.query("BEGIN");
@@ -579,19 +786,15 @@ exports.createMissingPerson = async (req, res) => {
         let validAge = isNaN(ageInt) ? null : ageInt;
 
         const missingQuery = `
-            INSERT INTO missing_persons (missing_person_name, age, gender, nationality, passport_number, missing_id_card_passport)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (missing_person_name)
-            DO UPDATE SET
-                age = EXCLUDED.age,
-                gender = EXCLUDED.gender,
-                nationality = EXCLUDED.nationality,
-                passport_number = EXCLUDED.passport_number,
-                missing_id_card_passport = EXCLUDED.missing_id_card_passport
+            INSERT INTO missing_persons (first_name_th, last_name_th, first_name_en, last_name_en, age, gender, nationality, passport_number, missing_id_card_passport)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING missing_person_id
         `;
         const missingRes = await client.query(missingQuery, [
-            validateLen(missing_person_name, 255),
+            validateLen(missing_first_name_th, 255),
+            validateLen(missing_last_name_th, 255),
+            validateLen(missing_first_name_en, 255),
+            validateLen(missing_last_name_en, 255),
             validAge,
             validateLen(gender, 50),
             validateLen(nationality, 100),
@@ -602,14 +805,21 @@ exports.createMissingPerson = async (req, res) => {
 
         // 2. Insert informant (ถ้ามี)
         let informant_id = null;
-        if (informant_name && informant_name.trim()) {
+        if (informant_first_name_th && informant_first_name_th.trim()) {
+            const informantAgeInt = parseInt(informant_age);
+            const informantValidAge = isNaN(informantAgeInt) ? null : informantAgeInt;
             const informantQuery = `
-                INSERT INTO informants (informant_name)
-                VALUES ($1)
-                ON CONFLICT (informant_name) DO UPDATE SET informant_name = EXCLUDED.informant_name
+                INSERT INTO informants (first_name_th, last_name_th, age, gender, nationality)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING informant_id
             `;
-            const informantRes = await client.query(informantQuery, [validateLen(informant_name, 255)]);
+            const informantRes = await client.query(informantQuery, [
+                validateLen(informant_first_name_th, 255), 
+                validateLen(informant_last_name_th, 255), 
+                informantValidAge, 
+                validateLen(informant_gender, 50), 
+                validateLen(informant_nationality, 100)
+            ]);
             informant_id = informantRes.rows[0].informant_id;
         }
 
@@ -638,11 +848,11 @@ exports.createMissingPerson = async (req, res) => {
         const caseQuery = `
             INSERT INTO cases (
                 missing_person_id, informant_id, 
-                missing_date, missing_time, missing_location,
-                last_seen_location_province, incident_summary,
-                police_station, human_trafficking_indicators,
+                missing_date, missing_time, detected_location_details,
+                detected_location_sub_district, detected_location_district, detected_location_province,
+                incident_summary, police_station, human_trafficking_indicators,
                 notes, photo_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING case_id
         `;
         await client.query(caseQuery, [
@@ -650,8 +860,10 @@ exports.createMissingPerson = async (req, res) => {
             informant_id,
             parseMissingDate,
             missing_time || null,
-            missing_location || null,
-            last_seen_location_province || null,
+            detected_location_details || null,
+            detected_location_sub_district || null,
+            detected_location_district || null,
+            detected_location_province || null,
             incident_summary || null,
             validateLen(police_station, 255),
             human_trafficking_indicators === "true" || human_trafficking_indicators === true ? "มี" : null,
@@ -685,7 +897,10 @@ exports.getMissingPersonById = async (req, res) => {
         const query = `
             SELECT
                 mp.missing_person_id,
-                mp.missing_person_name,
+                mp.first_name_th AS missing_first_name_th,
+                mp.last_name_th AS missing_last_name_th,
+                mp.first_name_en AS missing_first_name_en,
+                mp.last_name_en AS missing_last_name_en,
                 mp.age,
                 mp.gender,
                 mp.nationality,
@@ -697,11 +912,12 @@ exports.getMissingPersonById = async (req, res) => {
                 c.entry_checkpoint_province,
                 c.airline,
                 c.entry_date,
-                c.last_seen_location_province,
-                c.last_seen_date,
+                c.detected_location_details,
+                c.detected_location_sub_district,
+                c.detected_location_district,
+                c.detected_location_province,
                 c.missing_date,
                 c.missing_time,
-                c.missing_location,
                 c.photo_url,
                 c.investigating_officer,
                 c.reported_date,
@@ -719,7 +935,11 @@ exports.getMissingPersonById = async (req, res) => {
                 c.found_date,
                 c.notes,
                 i.informant_id,
-                i.informant_name,
+                i.first_name_th AS informant_first_name_th,
+                i.last_name_th AS informant_last_name_th,
+                i.age AS informant_age,
+                i.gender AS informant_gender,
+                i.nationality AS informant_nationality,
                 i.informant_id_card_passport,
                 i.informant_contact_channel,
                 i.informant_phone,
@@ -758,5 +978,173 @@ exports.getMissingPersonById = async (req, res) => {
     } catch (error) {
         console.error("Get Missing Person By ID Error:", error.message);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ============================================================
+// PUT /api/v1/missing/:id — แก้ไขข้อมูลบุคคลสูญหาย
+// ============================================================
+exports.updateMissingPerson = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        const {
+            missing_first_name_th, missing_middle_name_th, missing_last_name_th,
+            missing_first_name_en, missing_middle_name_en, missing_last_name_en,
+            age, gender, nationality, passport_number, missing_id_card_passport,
+            missing_date, missing_time, detected_location_details,
+            detected_location_sub_district, detected_location_district, detected_location_province,
+            incident_summary,
+            informant_first_name_th, informant_middle_name_th, informant_last_name_th,
+            informant_first_name_en, informant_middle_name_en, informant_last_name_en,
+            informant_age, informant_gender, informant_nationality,
+            informant_id_card_passport, informant_phone, informant_email, relationship,
+            police_station, human_trafficking_indicators, notes, case_number, pjv_number,
+            investigating_officer, operation_result, found_date, reported_date
+        } = req.body;
+
+        await client.query("BEGIN");
+
+        // 1. Update missing_persons
+        let ageInt = parseInt(age);
+        let validAge = isNaN(ageInt) ? null : ageInt;
+
+        await client.query(`
+            UPDATE missing_persons
+            SET first_name_th = $1, middle_name_th = $2, last_name_th = $3,
+                first_name_en = $4, middle_name_en = $5, last_name_en = $6,
+                age = $7, gender = $8, nationality = $9, passport_number = $10, missing_id_card_passport = $11
+            WHERE missing_person_id = $12
+        `, [
+            missing_first_name_th, missing_middle_name_th, missing_last_name_th,
+            missing_first_name_en, missing_middle_name_en, missing_last_name_en,
+            validAge, gender, nationality, passport_number, missing_id_card_passport,
+            id
+        ]);
+
+        // 2. Upload photo to Google Drive (ถ้ามีรูปใหม่)
+        let drivePhotoUrl = null;
+        if (req.file && req.file.buffer) {
+            try {
+                const tempFileName = `missing_update_${Date.now()}_${Math.floor(Math.random() * 1000)}.${req.file.originalname.split('.').pop() || 'jpeg'}`;
+                const driveResult = await uploadWithRetry({
+                    originalname: tempFileName,
+                    mimetype: req.file.mimetype,
+                    buffer: req.file.buffer,
+                }, process.env.GOOGLE_DRIVE_FOLDER_ID);
+                if (driveResult && driveResult.webViewLink) {
+                    drivePhotoUrl = driveResult.webViewLink;
+                }
+            } catch (e) {
+                console.error("Photo upload error:", e.message);
+            }
+        }
+
+        // 3. Update cases
+        // Fetch current case to get informant_id
+        const caseRes = await client.query("SELECT case_id, informant_id FROM cases WHERE missing_person_id = $1 LIMIT 1", [id]);
+        if (caseRes.rows.length === 0) {
+            throw new Error("ไม่พบข้อมูลคดี");
+        }
+        const { case_id, informant_id } = caseRes.rows[0];
+
+        const parseMissingDate = missing_date ? parseDateForDB(missing_date) || missing_date : null;
+        const parseFoundDate = found_date ? parseDateForDB(found_date) || found_date : null;
+        const parseReportedDate = reported_date ? parseDateForDB(reported_date) || reported_date : null;
+
+        let caseUpdateQuery = `
+            UPDATE cases
+            SET missing_date = $1, missing_time = $2, detected_location_details = $3,
+                detected_location_sub_district = $4, detected_location_district = $5, detected_location_province = $6,
+                incident_summary = $7, police_station = $8, human_trafficking_indicators = $9, notes = $10,
+                case_number = $11, pjv_number = $12, investigating_officer = $13, operation_result = $14,
+                found_date = $15, reported_date = $16, relationship = $17
+        `;
+        let caseParams = [
+            parseMissingDate, missing_time, detected_location_details,
+            detected_location_sub_district, detected_location_district, detected_location_province,
+            incident_summary, police_station, human_trafficking_indicators, notes,
+            case_number, pjv_number, investigating_officer, operation_result,
+            parseFoundDate, parseReportedDate, relationship
+        ];
+
+        if (drivePhotoUrl) {
+            caseUpdateQuery += `, photo_url = $18 WHERE case_id = $19`;
+            caseParams.push(drivePhotoUrl, case_id);
+        } else {
+            caseUpdateQuery += ` WHERE case_id = $18`;
+            caseParams.push(case_id);
+        }
+
+        await client.query(caseUpdateQuery, caseParams);
+
+        // 4. Update informant
+        if (informant_id) {
+            const informantAgeInt = parseInt(informant_age);
+            const informantValidAge = isNaN(informantAgeInt) ? null : informantAgeInt;
+            
+            await client.query(`
+                UPDATE informants
+                SET first_name_th = $1, middle_name_th = $2, last_name_th = $3,
+                    first_name_en = $4, middle_name_en = $5, last_name_en = $6,
+                    age = $7, gender = $8, nationality = $9, informant_id_card_passport = $10,
+                    informant_phone = $11, informant_email = $12
+                WHERE informant_id = $13
+            `, [
+                informant_first_name_th, informant_middle_name_th, informant_last_name_th,
+                informant_first_name_en, informant_middle_name_en, informant_last_name_en,
+                informantValidAge, informant_gender, informant_nationality, informant_id_card_passport,
+                informant_phone, informant_email,
+                informant_id
+            ]);
+        }
+
+        await client.query("COMMIT");
+        res.status(200).json({ success: true, message: "แก้ไขข้อมูลสำเร็จ" });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("Update Missing Person Error:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+// ============================================================
+// DELETE /api/v1/missing/:id — ลบข้อมูลบุคคลสูญหาย
+// ============================================================
+exports.deleteMissingPerson = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        await client.query("BEGIN");
+        
+        // cascade deletion should handle cases and other tables if foreign keys are setup correctly.
+        // If not, we should manually delete from cases, informants, and agencies.
+        // I will assume cases table references missing_persons with ON DELETE CASCADE. 
+        // If not, delete cases first:
+        const caseRes = await client.query("SELECT informant_id, agency_id FROM cases WHERE missing_person_id = $1", [id]);
+        if (caseRes.rows.length > 0) {
+            await client.query("DELETE FROM cases WHERE missing_person_id = $1", [id]);
+            for (const row of caseRes.rows) {
+                if (row.informant_id) {
+                    await client.query("DELETE FROM informants WHERE informant_id = $1", [row.informant_id]);
+                }
+                if (row.agency_id) {
+                    await client.query("DELETE FROM agencies WHERE agency_id = $1", [row.agency_id]);
+                }
+            }
+        }
+
+        await client.query("DELETE FROM missing_persons WHERE missing_person_id = $1", [id]);
+
+        await client.query("COMMIT");
+        res.status(200).json({ success: true, message: "ลบข้อมูลสำเร็จ" });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("Delete Missing Person Error:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
     }
 };

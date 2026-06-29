@@ -83,16 +83,7 @@ function MissingPageContent() {
     setCurrentPage(1); 
   };
 
-  const tableRows = (data?.tableData || []).map((item: any) => {
-    const missingName = !item.missing_person_name || item.missing_person_name.trim() === ""
-      ? "ไม่ระบุชื่อ"
-      : item.missing_person_name;
-
-    return {
-      ...item,
-      missing_person_name: missingName,
-    };
-  });
+  const tableRows = data?.tableData || [];
 
   const totalItems = data?.meta?.totalItems || 0;
   const totalPages = data?.meta?.totalPages || 1;

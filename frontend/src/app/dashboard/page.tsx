@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import BarChart from "@/components/dashboard/BarChart";
 import { useDashboard } from "@/hooks/useDashboard";
+import MissingTable from "@/components/missing/MissingTable";
 
 function DashboardContent() {
   const { states, actions, derived } = useDashboard();
@@ -92,37 +93,12 @@ function DashboardContent() {
                    <span className="font-bold text-lg text-(--header)">ตารางข้อมูลคนหาย ({derived.totalItems.toLocaleString("th-TH")} รายการ)</span>
                  </div>
                  
-                 <div className="bg-(--container) border border-(--wrapper) rounded-[0.2rem] shadow-[4px_4px_0px_rgba(0,0,0,0.25)] overflow-x-auto">
-                   <table className="w-full text-sm text-left whitespace-nowrap">
-                      <thead className="bg-(--wrapper) text-(--header)">
-                        <tr>
-                          <th className="px-4 py-3 cursor-pointer" onClick={() => actions.handleSort("name")}>ชื่อ-สกุล ↕</th>
-                          <th className="px-4 py-3 cursor-pointer" onClick={() => actions.handleSort("nationality")}>สัญชาติ ↕</th>
-                          <th className="px-4 py-3">เพศ</th>
-                          <th className="px-4 py-3">อายุ</th>
-                          <th className="px-4 py-3 cursor-pointer" onClick={() => actions.handleSort("reported_date")}>วันที่รับแจ้ง ↕</th>
-                          <th className="px-4 py-3">สถานะ (วันที่พบตัว)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {derived.tableRows.map((row: any, index: number) => (
-                          <tr key={`${row.missing_person_id}-${index}`} className="border-b border-(--wrapper) hover:bg-black/5 dark:hover:bg-white/5">
-                            <td className="px-4 py-3 font-medium">{row.first_name_th || "ไม่ระบุ"}</td>
-                            <td className="px-4 py-3">{row.nationality || "ไม่ระบุ"}</td>
-                            <td className="px-4 py-3">{row.gender || "ไม่ระบุ"}</td>
-                            <td className="px-4 py-3">{row.age || "ไม่ระบุ"}</td>
-                            <td className="px-4 py-3">{row.detected_date ? new Date(row.detected_date).toLocaleDateString("th-TH") : "ไม่ระบุ"}</td>
-                            <td className="px-4 py-3">{row.return_date ? `พบตัวแล้ว (${new Date(row.return_date).toLocaleDateString("th-TH")})` : "ยังไม่พบตัว"}</td>
-                          </tr>
-                        ))}
-                        {derived.tableRows.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">ไม่พบข้อมูล</td>
-                          </tr>
-                        )}
-                      </tbody>
-                   </table>
-                 </div>
+                 <MissingTable 
+                   data={derived.tableRows} 
+                   sortField={states.sortField as any} 
+                   sortDirection={states.sortDirection} 
+                   onSort={actions.handleSort as any} 
+                 />
 
                  {/* Pagination */}
                  {derived.totalPages > 1 && (
