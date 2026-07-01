@@ -40,7 +40,7 @@ export default function MissingEditForm({
               <img src={imagePreview} alt="Preview" referrerPolicy="no-referrer" className="h-40 w-40 object-cover rounded-xl border border-(--wrapper) shadow-sm" />
             ) : (
               <div className="h-40 w-40 rounded-xl border border-(--wrapper) shadow-sm bg-background flex items-center justify-center">
-                 <img src="/user.png" className="w-1/2 opacity-40" />
+                 <img src="/return.png" className="w-1/2 opacity-40" />
               </div>
             )}
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-slate-800 dark:file:bg-slate-600 file:text-white! cursor-pointer" />

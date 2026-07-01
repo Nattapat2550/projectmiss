@@ -160,7 +160,7 @@ export default async function Home() {
           addHref="/missing/create"
           chartData={missingChart}
           chartTitle="สัญชาติ (Top 6)"
-          imageSrc="/user.png" // เปลี่ยนไอคอนเป็นรูปผู้ใช้/คนหาย
+          imageSrc="/return.png" // เปลี่ยนไอคอนเป็นรูปผู้ใช้/คนหาย
         />
       </div>
     </div>

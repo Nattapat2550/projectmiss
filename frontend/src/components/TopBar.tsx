@@ -166,7 +166,7 @@ export default function TopBar() {
                             <div className="absolute right-0 mt-2 w-48 bg-(--container) border border-(--shadow) rounded-xl shadow-lg py-2 flex flex-col overflow-hidden">
                                 <div className="flex items-center gap-2 px-4 py-2 border-b border-(--shadow) bg-(--button)/40">
                                     <Image 
-                                        src="/user.png" 
+                                        src="/return.png" 
                                         alt="รูปโปรไฟล์ย่อ" 
                                         width={20} 
                                         height={20} 

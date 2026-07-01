@@ -17,7 +17,7 @@ export default function InformantCard({ data }: InformantCardProps) {
         {/* คอลัมน์ซ้าย (รูปภาพและป้ายสัญชาติ) */}
         <div className="flex flex-col items-center shrink-0 justify-center" style={{ width: "25%" }}>
           <div className="bg-white border border-blue-200 rounded-full flex items-center justify-center overflow-hidden shadow-inner relative w-3/4" style={{ aspectRatio: "1/1" }}>
-            <img src={"/user.png"} className="opacity-40 w-1/2"></img>
+            <img src={"/return.png"} className="opacity-40 w-1/2"></img>
           </div>
           <p className="font-bold text-blue-900 text-center leading-tight mt-[8%]" style={{ fontSize: "clamp(8px, 2vw, 16px)" }}>ผู้แจ้ง</p>
         </div>

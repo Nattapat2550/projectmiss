@@ -164,7 +164,7 @@ export default function MissingCard({ data }: MissingCardProps) {
                />
             ) : (
               <div className="flex flex-col items-center justify-end w-full h-full pb-[8%]">
-                <img src={"/user.png"} className="opacity-40"></img>
+                <img src={"/return.png"} className="opacity-40"></img>
               </div>
             )}
           </div>

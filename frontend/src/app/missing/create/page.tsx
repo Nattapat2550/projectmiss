@@ -161,7 +161,7 @@ export default function CreateMissingPerson() {
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3">รูปภาพบุคคลสูญหาย</h3>
         <div className="mb-6 flex flex-col items-start gap-4">
-          <SingleImageField file={selectedImage} previewUrl="/user.png" onChange={handleImageChange} onRemove={handleImageRemove}/>
+          <SingleImageField file={selectedImage} previewUrl="/return.png" onChange={handleImageChange} onRemove={handleImageRemove}/>
         </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลบุคคลสูญหาย</h3>
