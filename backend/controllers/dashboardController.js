@@ -92,7 +92,7 @@ exports.getDashboardStats = async (req, res) => {
           case "missing_location": sortExpr = `NULLIF(TRIM(c.detected_location_province), '') ${dir} NULLS LAST`; break;
           case "missing_date": sortExpr = `c.missing_date ${dir} NULLS LAST`; break;
           case "reported_date": sortExpr = `c.reported_date ${dir} NULLS LAST`; break;
-          case "status": sortExpr = `(CASE WHEN c.found_date IS NOT NULL OR (c.operation_result ILIKE '%พบตัว%' AND c.operation_result NOT ILIKE '%ไม่พบตัว%') THEN 0 ELSE 1 END) ${dir}`; break;
+          case "status": sortExpr = `(CASE WHEN c.found_date IS NOT NULL OR c.operation_result = true THEN 0 ELSE 1 END) ${dir}`; break;
       }
       if (sortExpr) {
           orderClause = `ORDER BY ${sortExpr}, c.case_id DESC`;
@@ -146,7 +146,7 @@ exports.getDashboardStats = async (req, res) => {
     let charts = {};
 
     // นับจำนวนที่พบตัวแล้ว
-    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere ? baseWhere + " AND " : "WHERE "} (c.found_date IS NOT NULL OR (c.operation_result ILIKE '%พบตัว%' AND c.operation_result NOT ILIKE '%ไม่พบตัว%'))`;
+    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere ? baseWhere + " AND " : "WHERE "} (c.found_date IS NOT NULL OR c.operation_result = true)`;
     const foundRes = await pool.query(foundQuery, baseParams);
     stats.found = parseInt(foundRes.rows[0].count);
 

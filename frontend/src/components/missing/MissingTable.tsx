@@ -77,7 +77,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
 
               const location = person.detected_location_province || person.address || person.detected_location_details || "ไม่ระบุสถานที่";
               const missingDate = person.missing_date || person.detected_date;
-              const isFound = person.found_date || (person.operation_result && person.operation_result.includes("พบตัว") && !person.operation_result.includes("ไม่พบตัว"));
+              const isFound = person.found_date || person.operation_result === true || person.operation_result === "true";
 
               return (
                 <tr
@@ -106,8 +106,8 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
                   <td className="px-4 py-3 truncate border-r" style={{ borderColor: "var(--wrapper)" }}>
                     {missingDate ? new Date(missingDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}
                   </td>
-                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={person.human_trafficking_indicators || "-"}>
-                    {person.human_trafficking_indicators || "-"}
+                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มีข้อบ่งชี้" : "-"}>
+                    {person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มี" : "-"}
                   </td>
                   <td className="px-4 py-3 truncate">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${isFound ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>

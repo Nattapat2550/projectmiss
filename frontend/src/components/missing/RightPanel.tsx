@@ -150,13 +150,13 @@ export default function RightPanel({ data, note, setNote, onEditClick }: RightPa
           
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
             <span className="font-bold text-(--foreground) dark:text-slate-300">ผลการปฏิบัติ</span>
-            <span className="font-semibold">{data.operation_result || "-"}</span>
+            <span className="font-semibold">{data.operation_result === true || data.operation_result === "true" ? "พบตัวแล้ว" : "อยู่ระหว่างดำเนินการ"}</span>
           </div>
 
           {data.human_trafficking_indicators || data.victim_classification ? (
             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700">
                <span className="font-bold">ข้อมูลการค้ามนุษย์:</span><br/>
-               {data.human_trafficking_indicators && <span>- ข้อบ่งชี้: {data.human_trafficking_indicators}<br/></span>}
+               {(data.human_trafficking_indicators === true || data.human_trafficking_indicators === "true") && <span>- ข้อบ่งชี้: มี<br/></span>}
                {data.victim_classification && <span>- การคัดแยกเหยื่อ: {data.victim_classification}</span>}
             </div>
           ) : null}

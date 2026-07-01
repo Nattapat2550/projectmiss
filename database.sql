@@ -38,7 +38,7 @@ CREATE TABLE informants (
     first_name_en VARCHAR(255),
     middle_name_en VARCHAR(255),
     last_name_en VARCHAR(255),
-    age INT,                               -- อายุ
+    birth_date DATE,                               -- วันเกิด
     gender VARCHAR(50),
     nationality VARCHAR(100),
     informant_id_card_passport VARCHAR(50),-- เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้แจ้ง
@@ -57,7 +57,7 @@ CREATE TABLE missing_persons (
     first_name_en VARCHAR(255),
     middle_name_en VARCHAR(255),
     last_name_en VARCHAR(255),
-    age INT,                               -- อายุ
+    birth_date DATE,                               -- วันเกิด
     gender VARCHAR(50),                    -- เพศ
     nationality VARCHAR(100),              -- สัญชาติ / สัญชาติของผู้สูญหาย
     passport_number VARCHAR(50),           -- หมายเลขหนังสือเดินทาง
