@@ -97,6 +97,7 @@ export default function UploadPreviewTable({
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อผู้แจ้ง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_first_name_en || renderNull()}</span></div>
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">ชื่อกลาง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_middle_name_en || renderNull()}</span></div>
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">สกุลผู้แจ้ง (EN):</span> <span className="font-medium text-(--blueText)">{row.reporter_last_name_en || renderNull()}</span></div>
+                                                <div className="text-sm"><span className="opacity-50 w-24 inline-block">วันเกิด/อายุ:</span> <span>{row.reporter_date_of_birth || row.reporter_age || '-'} | เพศ: {row.reporter_gender || '-'}</span></div>
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">ID/Passport:</span> <span>{row.reporter_id_card || renderNull()}</span></div>
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">เบอร์โทร:</span> <span>{row.reporter_phone || renderNull()}</span></div>
                                                 <div className="text-sm"><span className="opacity-50 w-24 inline-block">อีเมล:</span> <span>{row.reporter_email || renderNull()}</span></div>
@@ -139,7 +140,7 @@ export default function UploadPreviewTable({
                                                     <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อผู้สูญหาย (EN):</span> <span className="font-bold text-purple-500">{row.missing_first_name_en || renderNull()}</span></div>
                                                     <div className="text-sm"><span className="opacity-50 w-28 inline-block">ชื่อกลาง (EN):</span> <span className="font-bold text-purple-500">{row.missing_middle_name_en || renderNull()}</span></div>
                                                     <div className="text-sm"><span className="opacity-50 w-28 inline-block">สกุลผู้สูญหาย (EN):</span> <span className="font-bold text-purple-500">{row.missing_last_name_en || renderNull()}</span></div>
-                                                    <div className="text-sm"><span className="opacity-50 w-28 inline-block">อายุ/เพศ:</span> <span>{row.age || '-'} ปี | เพศ: {row.gender || '-'}</span></div>
+                                                    <div className="text-sm"><span className="opacity-50 w-28 inline-block">วันเกิด/อายุ:</span> <span>{row.date_of_birth || row.age || '-'} | เพศ: {row.gender || '-'}</span></div>
                                                     <div className="text-sm"><span className="opacity-50 w-28 inline-block">สัญชาติ:</span> <span>{row.nationality || renderNull()}</span></div>
                                                     <div className="text-sm"><span className="opacity-50 w-28 inline-block">ID/Passport:</span> <span className="font-mono">{row.missing_id_card || row.passport_id || renderNull()}</span></div>
 

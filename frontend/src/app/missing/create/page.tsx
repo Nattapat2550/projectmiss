@@ -22,7 +22,7 @@ export default function CreateMissingPerson() {
     missing_first_name_en: "",
     missing_middle_name_en: "",
     missing_last_name_en: "",
-    age: "", 
+    date_of_birth: "", 
     gender: "",
     nationality: "", 
     passport_number: "", 
@@ -40,7 +40,7 @@ export default function CreateMissingPerson() {
     informant_first_name_en: "",
     informant_middle_name_en: "",
     informant_last_name_en: "",
-    informant_age: "",
+    informant_date_of_birth: "",
     informant_gender: "",
     informant_nationality: "",
     informant_id_card_passport: "",
@@ -50,6 +50,21 @@ export default function CreateMissingPerson() {
     police_station: "", 
     human_trafficking_indicators: false, 
     notes: "", 
+    entry_channel: "",
+    entry_checkpoint_province: "",
+    airline: "",
+    entry_date: "",
+    reported_date: "",
+    receiving_channel: "",
+    investigating_officer: "",
+    case_number: "",
+    pjv_number: "",
+    pjv_file_url: "",
+    operation_result: false,
+    found_date: "",
+    victim_classification: "",
+    human_trafficking_type: "",
+    action_taken: "",
   });
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -177,7 +192,7 @@ export default function CreateMissingPerson() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-          <div><label className={labelClass}>อายุ (ปี)</label><input type="number" name="age" value={formData.age} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>วันเกิด</label><input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>เพศ</label>
             <select name="gender" value={formData.gender} onChange={handleInputChange} className={inputClass}>
               <option value="">ไม่ระบุ</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
@@ -189,6 +204,14 @@ export default function CreateMissingPerson() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
           <div><label className={labelClass}>เลขประจำตัวประชาชน/พาสปอร์ต</label><input type="text" name="missing_id_card_passport" value={formData.missing_id_card_passport} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>หมายเลขหนังสือเดินทาง (ถ้ามี)</label><input type="text" name="passport_number" value={formData.passport_number} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+
+        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลการเดินทางเข้า (ถ้ามี)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          <div><label className={labelClass}>ช่องทางที่เดินทางเข้า</label><input type="text" name="entry_channel" value={formData.entry_channel} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อด่านและจังหวัดที่เดินทางเข้า</label><input type="text" name="entry_checkpoint_province" value={formData.entry_checkpoint_province} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>สายการบิน (ถ้ามี)</label><input type="text" name="airline" value={formData.airline} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>วันที่เดินทางเข้า</label><input type="date" name="entry_date" value={formData.entry_date} onChange={handleInputChange} className={inputClass} /></div>
         </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">รายละเอียดการสูญหาย</h3>
@@ -215,12 +238,17 @@ export default function CreateMissingPerson() {
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลการรับแจ้ง</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-          <div><label className={labelClass}>ชื่อต้น (ผู้แจ้ง)</label><input type="text" name="informant_first_name_th" value={formData.informant_first_name_th} onChange={handleInputChange} className={inputClass} /></div>
-          <div><label className={labelClass}>ชื่อกลาง (ผู้แจ้ง)</label><input type="text" name="informant_middle_name_th" value={formData.informant_middle_name_th} onChange={handleInputChange} className={inputClass} /></div>
-          <div><label className={labelClass}>นามสกุล (ผู้แจ้ง)</label><input type="text" name="informant_last_name_th" value={formData.informant_last_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อต้น (ไทย) (ผู้แจ้ง)</label><input type="text" name="informant_first_name_th" value={formData.informant_first_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อกลาง (ไทย) (ผู้แจ้ง)</label><input type="text" name="informant_middle_name_th" value={formData.informant_middle_name_th} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>นามสกุล (ไทย) (ผู้แจ้ง)</label><input type="text" name="informant_last_name_th" value={formData.informant_last_name_th} onChange={handleInputChange} className={inputClass} /></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-          <div><label className={labelClass}>อายุ (ปี)</label><input type="number" name="informant_age" value={formData.informant_age} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อต้น (อังกฤษ) (ผู้แจ้ง)</label><input type="text" name="informant_first_name_en" value={formData.informant_first_name_en} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ชื่อกลาง (อังกฤษ) (ผู้แจ้ง)</label><input type="text" name="informant_middle_name_en" value={formData.informant_middle_name_en} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>นามสกุล (อังกฤษ) (ผู้แจ้ง)</label><input type="text" name="informant_last_name_en" value={formData.informant_last_name_en} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>วันเกิด</label><input type="date" name="informant_date_of_birth" value={formData.informant_date_of_birth} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>เพศ</label>
             <select name="informant_gender" value={formData.informant_gender} onChange={handleInputChange} className={inputClass}>
               <option value="">ไม่ระบุ</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
@@ -240,9 +268,40 @@ export default function CreateMissingPerson() {
           <div><label className={labelClass}>สถานีตำรวจที่รับแจ้ง</label><input type="text" name="police_station" value={formData.police_station} onChange={handleInputChange} className={inputClass} /></div>
         </div>
 
+        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลคดีและการดำเนินการ</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>วันที่รับแจ้งความ</label><input type="date" name="reported_date" value={formData.reported_date} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ช่องทางการรับแจ้ง</label><input type="text" name="receiving_channel" value={formData.receiving_channel} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>พนักงานสอบสวนผู้รับผิดชอบ</label><input type="text" name="investigating_officer" value={formData.investigating_officer} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>เลขคดี</label><input type="text" name="case_number" value={formData.case_number} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>เลข ปจว.</label><input type="text" name="pjv_number" value={formData.pjv_number} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ลิงก์ไฟล์ ปจว. (ถ้ามี)</label><input type="text" name="pjv_file_url" value={formData.pjv_file_url} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+
+        <div className="mb-5 flex items-center gap-2 bg-background p-4 rounded-xl border border-(--wrapper)">
+          <input type="checkbox" id="operation_result" name="operation_result" checked={formData.operation_result} onChange={handleInputChange} className="w-4 h-4 text-black! dark:text-white! focus:ring-(--header) border-gray-300 rounded cursor-pointer" />
+          <label htmlFor="operation_result" className="text-sm font-bold cursor-pointer select-none text-black! dark:text-white!">พบตัวแล้ว (ผลการปฏิบัติ)</label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>วันที่พบตัว</label><input type="date" name="found_date" value={formData.found_date} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+
         <div className="mb-5 flex items-center gap-2 bg-background p-4 rounded-xl border border-(--wrapper)">
           <input type="checkbox" id="human_trafficking_indicators" name="human_trafficking_indicators" checked={formData.human_trafficking_indicators} onChange={handleInputChange} className="w-4 h-4 text-black! dark:text-white! focus:ring-(--header) border-gray-300 rounded cursor-pointer" />
           <label htmlFor="human_trafficking_indicators" className="text-sm font-bold cursor-pointer select-none text-black! dark:text-white!">มีข้อบ่งชี้การค้ามนุษย์ (Human Trafficking Indicator)</label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          <div><label className={labelClass}>การคัดแยกเหยื่อ</label><input type="text" name="victim_classification" value={formData.victim_classification} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>ประเภทของการค้ามนุษย์</label><input type="text" name="human_trafficking_type" value={formData.human_trafficking_type} onChange={handleInputChange} className={inputClass} /></div>
+        </div>
+
+        <div className="mb-5">
+          <label className={labelClass}>การดำเนินการ (Action Taken)</label>
+          <textarea name="action_taken" value={formData.action_taken} onChange={handleInputChange} rows={3} className={inputClass} />
         </div>
 
         <div className="mb-5">

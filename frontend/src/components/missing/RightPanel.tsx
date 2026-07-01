@@ -134,22 +134,22 @@ export default function RightPanel({ data, note, setNote, onEditClick }: RightPa
           </div>
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2 mt-4">
-            <span className="font-bold text-(--foreground) dark:text-slate-300">วันที่รับแจ้ง</span>
+            <span className="font-bold text-foreground dark:text-slate-300">วันที่รับแจ้ง</span>
             <span className="font-mono font-semibold">{formatDate(data.reported_date)}</span>
           </div>
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-            <span className="font-bold text-(--foreground) dark:text-slate-300">สถานีตำรวจ</span>
+            <span className="font-bold text-foreground dark:text-slate-300">สถานีตำรวจ</span>
             <span className="font-semibold">{data.police_station || "-"}</span>
           </div>
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-            <span className="font-bold text-(--foreground) dark:text-slate-300">พนักงานสอบสวน</span>
+            <span className="font-bold text-foreground dark:text-slate-300">พนักงานสอบสวน</span>
             <span className="font-semibold">{data.investigating_officer || "-"}</span>
           </div>
           
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
-            <span className="font-bold text-(--foreground) dark:text-slate-300">ผลการปฏิบัติ</span>
+            <span className="font-bold text-foreground dark:text-slate-300">ผลการปฏิบัติ</span>
             <span className="font-semibold">{data.operation_result === true || data.operation_result === "true" ? "พบตัวแล้ว" : "อยู่ระหว่างดำเนินการ"}</span>
           </div>
 

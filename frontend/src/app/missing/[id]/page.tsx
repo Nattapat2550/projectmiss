@@ -4,7 +4,7 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import MissingCard from "@/components/missing/MissingCard";
-import InformantCard from "@/components/missing/InformantCard";
+
 import RightPanel from "@/components/missing/RightPanel";
 import MissingEditForm from "@/components/missing/MissingEditForm";
 import { useMissingDetail } from "@/hooks/useMissingDetail";
@@ -44,6 +44,7 @@ export default function MissingPersonDetailPage() {
           formData={states.formData}
           isSaving={states.isSaving}
           imagePreview={states.imagePreview}
+          imageFile={states.imageFile}
           handlers={handlers}
           onCancel={() => actions.setIsEditing(false)}
         />
@@ -51,7 +52,6 @@ export default function MissingPersonDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto items-start">
           <div className="lg:col-span-7 xl:col-span-8 w-full">
             <MissingCard data={states.data} />
-            <InformantCard data={states.data} />
           </div>
           <div className="lg:col-span-5 xl:col-span-4 w-full">
             <RightPanel 

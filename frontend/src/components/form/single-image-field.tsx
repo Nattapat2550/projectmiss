@@ -1,9 +1,7 @@
 "use client";
 
 import { ImageIcon, Plus, X } from "lucide-react";
-import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
-
 import { cn } from "@/lib/utils";
 
 export default function SingleImageField({
@@ -53,15 +51,13 @@ export default function SingleImageField({
 
 				<div className="size-40 relative pointer-events-none select-none">
 					{/* Image */}
-					<Image
+					<img
 						src={file ? URL.createObjectURL(file) : previewUrl}
 						alt="Preview"
 						className={cn(
 							"size-40 rounded-xl border border-(--wrapper) object-cover shadow-sm",
 							dragover ? "opacity-40" : "opacity-100"
 						)}
-						width={160}
-						height={160}
 					/>
 					{/* Drag Overlay */}
 					<div

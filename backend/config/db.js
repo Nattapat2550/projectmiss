@@ -7,9 +7,9 @@ const pool = new Pool({
   connectionString: connectionString,
   ssl: isLocalhost ? false : { rejectUnauthorized: false },
   // ⚡ เพิ่มเพื่อประสิทธิภาพการดึงและอัพโหลดข้อมูลที่ไวที่สุด
-  max: 25,                 // จำนวน Client สูงสุดใน Pool
-  idleTimeoutMillis: 30000, // ปิด Connection ที่ไม่ได้ใช้งานภายใน 30 วินาที
-  connectionTimeoutMillis: 10000, // Timeout ถ้าต่อฐานข้อมูลไม่ได้ภายใน 10 วินาที (ช่วยให้เซิร์ฟเวอร์ตอบกลับไวขึ้นเมื่อมีปัญหา)
+  max: 25,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 60000, // เพิ่มเป็น 60 วินาที เพื่อเผื่อเวลาให้ฐานข้อมูลแบบ Free Tier ของ Render ตื่น
 });
 
 pool.connect()

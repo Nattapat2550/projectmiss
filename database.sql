@@ -38,7 +38,7 @@ CREATE TABLE informants (
     first_name_en VARCHAR(255),
     middle_name_en VARCHAR(255),
     last_name_en VARCHAR(255),
-    birth_date DATE,                               -- วันเกิด
+    date_of_birth DATE,                               -- วันเกิด
     gender VARCHAR(50),
     nationality VARCHAR(100),
     informant_id_card_passport VARCHAR(50),-- เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้แจ้ง
@@ -57,7 +57,7 @@ CREATE TABLE missing_persons (
     first_name_en VARCHAR(255),
     middle_name_en VARCHAR(255),
     last_name_en VARCHAR(255),
-    birth_date DATE,                               -- วันเกิด
+    date_of_birth DATE,                               -- วันเกิด
     gender VARCHAR(50),                    -- เพศ
     nationality VARCHAR(100),              -- สัญชาติ / สัญชาติของผู้สูญหาย
     passport_number VARCHAR(50),           -- หมายเลขหนังสือเดินทาง
@@ -98,11 +98,11 @@ CREATE TABLE cases (
     case_number VARCHAR(100),              -- เลขคดี / เลขคดีที่
     pjv_number VARCHAR(100),               -- เลข ปจว. ที่
     pjv_file_url TEXT,                     -- อัพโหลด ปจว. รับแจ้งเหตุฯ (ถ้ามี) - PDF file หรือ ภาพถ่าย
-    human_trafficking_indicators TEXT,     -- ข้อบ่งชี้ค้ามนุษย์
+    human_trafficking_indicators BOOLEAN,     -- ข้อบ่งชี้ค้ามนุษย์
     victim_classification TEXT,            -- การคัดแยกเหยื่อ
     human_trafficking_type VARCHAR(255),   -- ประเภทของการค้ามนุษย์
     action_taken TEXT,                     -- การดำเนินการ
-    operation_result TEXT,                 -- ผลการปฏิบัติ
+    operation_result BOOLEAN,                 -- ผลการปฏิบัติ
     police_station VARCHAR(255),           -- สถานีตำรวจ (สน./สภ.) / สถานีตำรวจที่รับแจ้ง
     found_date DATE,                       -- วันที่พบตัว
     notes TEXT,                            -- หมายเหตุ

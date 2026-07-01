@@ -1,5 +1,9 @@
 const { processUploadMissingExcel } = require("../services/uploadService");
 
+if (!global.uploadProgress) {
+    global.uploadProgress = {};
+}
+
 exports.getUploadProgress = (req, res) => {
     const jobId = req.params.jobId;
     res.json(global.uploadProgress[jobId] || { current: 0, total: 0, status: 'pending' });
@@ -16,6 +20,16 @@ exports.uploadMissingExcel = async (req, res) => {
 
         if (result.action === "preview") {
             return res.status(200).json({ success: true, message: "ดึงข้อมูลพรีวิวสำเร็จ", total_rows: result.total_rows, preview_data: result.preview_data });
+        }
+
+        require('fs').writeFileSync('upload_debug.log', JSON.stringify({
+            totalLength: result.totalLength,
+            successCount: result.successCount,
+            errors: result.errors
+        }, null, 2));
+
+        if (result.errors && result.errors.length > 0) {
+            require('fs').writeFileSync('upload_errors.log', JSON.stringify(result.errors, null, 2));
         }
 
         res.status(200).json({

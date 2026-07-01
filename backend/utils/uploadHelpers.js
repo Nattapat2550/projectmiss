@@ -4,7 +4,7 @@ const { uploadToDrive } = require("../services/googleDriveService");
 
 let thaiAddresses = [];
 try {
-    const addressPath = path.join(__dirname, '../../frontend/public/thai_addresses.json');
+    const addressPath = path.resolve(process.cwd(), 'data', 'thai_addresses.json');
     thaiAddresses = JSON.parse(fs.readFileSync(addressPath, 'utf-8'));
 } catch (err) {
     console.error("Could not load thai_addresses.json for address parsing", err);
@@ -224,6 +224,22 @@ const getVal = (row, possibleKeys) => {
     return null;
 };
 
+const limitConcurrency = async (tasks, limit) => {
+    const results = [];
+    const executing = new Set();
+    for (const task of tasks) {
+        const p = Promise.resolve().then(() => task());
+        results.push(p);
+        executing.add(p);
+        const clean = () => executing.delete(p);
+        p.then(clean, clean);
+        if (executing.size >= limit) {
+            await Promise.race(executing);
+        }
+    }
+    return Promise.all(results);
+};
+
 module.exports = {
     splitThaiAddress,
     validateLen,
@@ -232,5 +248,6 @@ module.exports = {
     parseDateForDB,
     uploadWithRetry,
     downloadImageToBuffer,
-    getVal
+    getVal,
+    limitConcurrency
 };

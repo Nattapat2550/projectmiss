@@ -25,6 +25,35 @@ export const helperGetFullName = (person: any): string => {
   return "ไม่ระบุชื่อ";
 };
 
+export const helperFormatDOBAndAge = (dob: string | null, age: number | string | null): string => {
+  let computedAge = age;
+  
+  if (dob && !computedAge) {
+    const birthDate = new Date(dob);
+    if (!isNaN(birthDate.getTime())) {
+      const today = new Date();
+      let ageNum = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        ageNum--;
+      }
+      if (ageNum >= 0) {
+        computedAge = ageNum;
+      }
+    }
+  }
+
+  let ageStr = computedAge ? `${computedAge} ปี` : "";
+  if (dob) {
+    const d = new Date(dob);
+    if (!isNaN(d.getTime())) {
+      const dateStr = d.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" });
+      return `${dateStr}${ageStr ? ` (${ageStr})` : ""}`;
+    }
+  }
+  return ageStr || "-";
+};
+
 export type SortField = "name" | "nationality" | "age" | "gender" | "missing_location" | "missing_date" | "status" | "human_trafficking";
 
 interface MissingTableProps {
@@ -62,7 +91,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
           <tr style={{ borderBottom: "1px solid var(--wrapper)" }}>
             <Th field="name" width="w-[20%]">ชื่อ - นามสกุล</Th>
             <Th field="nationality" width="w-[10%]">สัญชาติ</Th>
-            <Th field="age" width="w-[10%]">อายุ</Th>
+            <Th field="age" width="w-[15%]">วันเกิด (อายุ)</Th>
             <Th field="gender" width="w-[10%]">เพศ</Th>
             <Th field="missing_location" width="w-[15%]">สถานที่สูญหายล่าสุด</Th>
             <Th field="missing_date" width="w-[10%]">วันที่รับแจ้ง</Th>
@@ -77,7 +106,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
 
               const location = person.detected_location_province || person.address || person.detected_location_details || "ไม่ระบุสถานที่";
               const missingDate = person.missing_date || person.detected_date;
-              const isFound = person.found_date || person.operation_result === true || person.operation_result === "true";
+              const isFound = person.return_date || person.found_date || person.result === true || person.result === "true" || person.operation_result === true || person.operation_result === "true";
 
               return (
                 <tr
@@ -95,7 +124,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
                     {person.nationality || "ไม่ระบุ"}
                   </td>
                   <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }}>
-                    {person.age ? `${person.age} ปี` : "-"}
+                    {helperFormatDOBAndAge(person.date_of_birth, person.age)}
                   </td>
                   <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }}>
                     {person.gender || "-"}
@@ -106,8 +135,8 @@ export default function MissingTable({ data, sortField, sortDirection, onSort }:
                   <td className="px-4 py-3 truncate border-r" style={{ borderColor: "var(--wrapper)" }}>
                     {missingDate ? new Date(missingDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}
                   </td>
-                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มีข้อบ่งชี้" : "-"}>
-                    {person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มี" : "-"}
+                  <td className="px-4 py-3 border-r truncate" style={{ borderColor: "var(--wrapper)" }} title={person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มีข้อบ่งชี้" : "ไม่มี"}>
+                    {person.human_trafficking_indicators === true || person.human_trafficking_indicators === "true" ? "มี" : "ไม่มี"}
                   </td>
                   <td className="px-4 py-3 truncate">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${isFound ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>

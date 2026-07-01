@@ -1,5 +1,10 @@
 const express = require("express");
 const cors = require("cors");
+
+if (!global.uploadProgress) {
+    global.uploadProgress = {};
+}
+
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
@@ -21,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // เสิร์ฟไฟล์รูปภาพ/ไฟล์แนบแบบ Public
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 // 🟢 เพิ่ม Route หน้าแรก (Root) เอาไว้ตอบกลับ ServerAwaker โดยเฉพาะ
 app.get("/", (req, res) => {

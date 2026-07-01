@@ -1,20 +1,46 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import BarChart from "@/components/dashboard/BarChart";
+import LineChart from "@/components/dashboard/LineChart";
 import { useDashboard } from "@/hooks/useDashboard";
 import MissingTable from "@/components/missing/MissingTable";
+
+
 
 function DashboardContent() {
   const { states, actions, derived } = useDashboard();
   const [showSettings, setShowSettings] = useState(false);
   const [visibleCharts, setVisibleCharts] = useState<string[]>([]);
 
+  useEffect(() => {
+    const getCookie = (name: string): string | null => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+      return null;
+    };
+    
+    const cookieVal = getCookie("dashboard_visible_charts_miss");
+    if (cookieVal) {
+      setVisibleCharts(cookieVal.split(",").filter(Boolean));
+    } else {
+      setVisibleCharts(["nationality", "gender", "province", "reportedDate", "ageGroup", "trafficking", "status"]);
+    }
+  }, []);
+
+  const saveVisibleCharts = (chartsList: string[]) => {
+    setVisibleCharts(chartsList);
+    const date = new Date();
+    date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+    document.cookie = `dashboard_visible_charts_miss=${chartsList.join(",")}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+  };
+
   const toggleChart = (chart: string) => {
-    setVisibleCharts((prev) => 
-      prev.includes(chart) ? prev.filter((c) => c !== chart) : [...prev, chart]
-    );
+    const isVisible = visibleCharts.includes(chart);
+    const updated = isVisible ? visibleCharts.filter((c) => c !== chart) : [...visibleCharts, chart];
+    saveVisibleCharts(updated);
   };
   const inputClass = "w-full bg-background border border-(--wrapper) text-foreground rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--header)/40 [&::-webkit-calendar-picker-indicator]:dark:invert";
 
@@ -40,6 +66,35 @@ function DashboardContent() {
             <label className="text-sm font-bold text-(--header) opacity-70">เพศ</label>
             <select value={states.filterGender} onChange={(e) => actions.handleFilterChange(actions.setFilterGender, e.target.value)} className={inputClass}>
               {derived.gendersOptions.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+
+          
+          <div className="flex flex-col gap-2 mt-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">จังหวัด</label>
+            <select value={states.filterProvince} onChange={(e) => actions.handleFilterChange(actions.setFilterProvince, e.target.value)} className={inputClass}>
+              {derived.provinceOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">ช่วงอายุ</label>
+            <select value={states.filterAge} onChange={(e) => actions.handleFilterChange(actions.setFilterAge, e.target.value)} className={inputClass}>
+              {derived.ageOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">ข้อบ่งชี้การค้ามนุษย์</label>
+            <select value={states.filterTrafficking} onChange={(e) => actions.handleFilterChange(actions.setFilterTrafficking, e.target.value)} className={inputClass}>
+              {derived.traffickingOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">สถานะ</label>
+            <select value={states.filterStatus} onChange={(e) => actions.handleFilterChange(actions.setFilterStatus, e.target.value)} className={inputClass}>
+              {derived.statusOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
 
@@ -99,6 +154,13 @@ function DashboardContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-2 justify-start items-start w-full">
                     {(!visibleCharts.length || visibleCharts.includes("nationality")) && derived.natChart.length > 0 && <BarChart data={derived.natChart} title="สัญชาติ (Top 6)" />}
                     {(!visibleCharts.length || visibleCharts.includes("gender")) && derived.genderChart.length > 0 && <BarChart data={derived.genderChart} title="เพศ" />}
+
+                    {(!visibleCharts.length || visibleCharts.includes("province")) && derived.provinceChart && derived.provinceChart.length > 0 && <BarChart data={derived.provinceChart} title="จังหวัดที่สูญหาย (Top 6)" />}
+                    {(!visibleCharts.length || visibleCharts.includes("reportedDate")) && derived.reportedDateChart && derived.reportedDateChart.length > 0 && <LineChart data={derived.reportedDateChart} title="แนวโน้มวันที่รับแจ้งความ (รายเดือน)" />}
+                    {(!visibleCharts.length || visibleCharts.includes("ageGroup")) && derived.ageChart && derived.ageChart.length > 0 && <BarChart data={derived.ageChart} title="ช่วงอายุคนหาย" />}
+                    {(!visibleCharts.length || visibleCharts.includes("trafficking")) && derived.traffickingChart && derived.traffickingChart.length > 0 && <BarChart data={derived.traffickingChart} title="ข้อบ่งชี้การค้ามนุษย์" />}
+                    {(!visibleCharts.length || visibleCharts.includes("status")) && derived.statusChart && derived.statusChart.length > 0 && <BarChart data={derived.statusChart} title="สถานะการพบตัว" />}
+
                   </div>
                 )}
               </div>
@@ -163,14 +225,41 @@ function DashboardContent() {
                     />
                     เพศ
                   </label>
+
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("province")} onChange={() => toggleChart("province")} className="w-4 h-4 accent-(--blueText)" />
+                    จังหวัดที่สูญหาย
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("reportedDate")} onChange={() => toggleChart("reportedDate")} className="w-4 h-4 accent-(--blueText)" />
+                    แนวโน้มวันที่รับแจ้งความ
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("ageGroup")} onChange={() => toggleChart("ageGroup")} className="w-4 h-4 accent-(--blueText)" />
+                    ช่วงอายุ
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("trafficking")} onChange={() => toggleChart("trafficking")} className="w-4 h-4 accent-(--blueText)" />
+                    ข้อบ่งชี้การค้ามนุษย์
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("status")} onChange={() => toggleChart("status")} className="w-4 h-4 accent-(--blueText)" />
+                    สถานะการพบตัว
+                  </label>
                 </div>
 
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-end gap-2 mt-2">
                   <button 
-                    onClick={() => setShowSettings(false)}
-                    className="px-6 py-2 bg-(--header) text-background rounded-md font-bold text-sm hover:opacity-90 transition active:scale-95 cursor-pointer"
+                    onClick={() => saveVisibleCharts(["nationality", "gender", "province", "reportedDate", "ageGroup", "trafficking", "status"])} 
+                    className="px-3.5 py-1.5 bg-zinc-200 dark:bg-zinc-800 text-sm font-bold text-(--header) hover:opacity-80 transition rounded cursor-pointer select-none"
                   >
-                    บันทึก / ปิด
+                    แสดงผลทั้งหมด
+                  </button>
+                  <button 
+                    onClick={() => setShowSettings(false)} 
+                    className="px-5 py-1.5 bg-(--blueText) text-(--button) text-sm font-bold hover:opacity-90 transition rounded cursor-pointer select-none"
+                  >
+                    ตกลง
                   </button>
                 </div>
               </div>

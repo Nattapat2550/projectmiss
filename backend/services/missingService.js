@@ -50,12 +50,12 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
         const dir = String(sortOrder).trim().toLowerCase() === "asc" ? "ASC" : "DESC";
         let sortExpr = null;
         switch (field) {
-            case "name": sortExpr = `NULLIF(TRIM(mp.first_name_th), '') ${dir} NULLS LAST`; break;
+            case "name": sortExpr = `COALESCE(NULLIF(NULLIF(TRIM(mp.first_name_th), ''), 'ไม่ระบุ'), NULLIF(NULLIF(TRIM(mp.first_name_en), ''), 'ไม่ระบุ')) ${dir} NULLS LAST`; break;
             case "missing_date": sortExpr = `c.missing_date ${dir} NULLS LAST`; break;
             case "missing_id_card_passport": sortExpr = `NULLIF(TRIM(mp.missing_id_card_passport), '') ${dir} NULLS LAST`; break;
             case "missing_location": sortExpr = `NULLIF(TRIM(c.detected_location_province), '') ${dir} NULLS LAST`; break;
             case "nationality": sortExpr = `NULLIF(TRIM(mp.nationality), '') ${dir} NULLS LAST`; break;
-            case "age": sortExpr = `mp.date_of_birth ${dir} NULLS LAST`; break; // Sort by date_of_birth
+            case "age": sortExpr = `mp.date_of_birth ${dir === 'ASC' ? 'DESC' : 'ASC'} NULLS LAST`; break;
             case "gender": sortExpr = `NULLIF(TRIM(mp.gender), '') ${dir} NULLS LAST`; break;
             case "human_trafficking": sortExpr = `c.human_trafficking_indicators ${dir} NULLS LAST`; break;
             case "status": sortExpr = `(CASE WHEN c.found_date IS NOT NULL OR c.operation_result = true THEN 0 ELSE 1 END) ${dir}`; break;
@@ -68,7 +68,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
     const dataQuery = `
         SELECT
             mp.missing_person_id, mp.first_name_th, mp.last_name_th, mp.first_name_en, mp.last_name_en,
-            mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
+            EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) as age, mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.missing_date, c.missing_time, c.detected_location_details,
             c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
             c.photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result, c.police_station,

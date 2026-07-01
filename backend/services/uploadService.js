@@ -10,8 +10,10 @@ const {
     parseDateForDB, 
     uploadWithRetry, 
     downloadImageToBuffer, 
-    getVal 
+    getVal,
+    limitConcurrency
 } = require("../utils/uploadHelpers");
+const cache = require("../utils/cache");
 
 const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     const workbookXlsx = xlsx.read(fileBuffer, { type: "buffer" });
@@ -143,6 +145,9 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             reporter_phone: getVal(row, ["เบอร์โทรศัพท์ ผู้แจ้ง", "เบอร์โทรศัพท์ผู้แจ้ง"]),
             reporter_email: getVal(row, ["อีเมล ผู้แจ้ง", "อีเมลผู้แจ้ง"]),
             reporter_contact: getVal(row, ["ช่องทางการติดต่อของผู้แจ้ง"]), 
+            reporter_date_of_birth: formatExcelDate(getVal(row, ["วันเกิดผู้แจ้ง", "วันเกิด (ผู้แจ้ง)"])),
+            reporter_age: getVal(row, ["อายุผู้แจ้ง", "อายุ (ผู้แจ้ง)"]),
+            reporter_gender: getVal(row, ["เพศผู้แจ้ง", "เพศ (ผู้แจ้ง)"]),
             relationship: getVal(row, ["ความสัมพันธ์"]),
             police_receiver: getVal(row, ["เจ้าหน้าที่ตำรวจผู้รับแจ้ง"]),
             police_station: getVal(row, ["สถานีตำรวจ", "สถานีตำรวจภูธร", "สถานีตำรวจนครบาล", "สถานีตำรวจ "]),
@@ -169,7 +174,8 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             missing_middle_name_en,
             missing_last_name_en,
             missing_id_card: getVal(row, ["เลขประจำตัวประชาชน/เลขหนังสือเดินทาง ผู้สูญหาย", "เลขประจำตัวประชาชนผู้สูญหาย"]),
-            age: getVal(row, ["อายุ"]),
+            date_of_birth: formatExcelDate(getVal(row, ["วันเกิด", "วัน/เดือน/ปีเกิด", "วันเกิดผู้สูญหาย"])),
+            age: getVal(row, ["อายุ", "อายุ (ปี)"]),
             gender: determineGender(row, parsedMissing.prefix) || getVal(row, ["เพศ"]),
             nationality: normalizeNationality(getVal(row, ["สัญชาติ", "สัญชาติของผู้สูญหาย"])),
             passport_id: getVal(row, ["หมายเลขหนังสือเดินทาง"]),
@@ -187,11 +193,20 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             _imageData: row._image,
             _original_photo_url: getVal(row, ["รูปภาพ"]),
             circumstances: getVal(row, ["พฤติการณ์", "พฤติการณ์โดยสังเขป"]),
-            human_trafficking_indicator: (getVal(row, ["ข้อบ่งชี้ค้ามนุษย์"]) || "").toString().includes("มี"),
+            human_trafficking_indicator: (() => {
+                const val = (getVal(row, ["ข้อบ่งชี้ค้ามนุษย์"]) || "").toString().trim();
+                if (val.includes("ไม่มี") || val === "ไม่" || val.toLowerCase() === "no" || val.toLowerCase() === "false") return false;
+                if (val.includes("มี") || val.toLowerCase() === "yes" || val.toLowerCase() === "true") return true;
+                return false;
+            })(),
             victim_screening: getVal(row, ["การคัดแยกเหยื่อ"]),
             trafficking_type: getVal(row, ["ประเภทของการค้ามนุษย์"]),
             action_taken: getVal(row, ["การดำเนินการ"]),
-            operation_result: (getVal(row, ["ผลการปฏิบัติ"]) || "").toString().includes("พบตัว") && !(getVal(row, ["ผลการปฏิบัติ"]) || "").toString().includes("ไม่พบตัว"),
+            operation_result: (() => {
+                const val = (getVal(row, ["ผลการปฏิบัติ"]) || "").toString().trim();
+                if (val.includes("พบตัว") && !val.includes("ไม่พบตัว")) return true;
+                return false;
+            })(),
             found_date: formatExcelDate(getVal(row, ["วันที่พบตัว"])),
             note: getVal(row, ["หมายเหตุ"]),
             raw_data_from_excel: row
@@ -208,22 +223,11 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     let errors = [];
     if (jobId) global.uploadProgress[jobId] = { current: 0, total: mappedData.length, status: 'processing' };
 
-    const chunkArray = (array, size) => {
-        const result = [];
-        for (let i = 0; i < array.length; i += size) {
-            result.push(array.slice(i, i + size));
-        }
-        return result;
-    };
+    let currentProgress = 0;
 
-    const CONCURRENCY_LIMIT = 5; 
-    const mappedDataWithIdx = mappedData.map((d, idx) => ({ ...d, _originalIndex: idx }));
-    const batches = chunkArray(mappedDataWithIdx, CONCURRENCY_LIMIT);
-
-    for (const batch of batches) {
-        await Promise.all(batch.map(async (mappedRow) => {
-            const i = mappedRow._originalIndex;
-        
+    // 1. Google Drive Uploads (Concurrency 20)
+    const driveTasks = mappedData.map((mappedRow, idx) => {
+        return async () => {
             let drivePhotoUrl = null;
             let imageToUpload = mappedRow._imageData;
 
@@ -243,12 +247,28 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                         drivePhotoUrl = driveResult.webViewLink; 
                     }
                 } catch (e) { 
-                    errors.push(`แถวที่ ${i + 1}: อัปโหลดรูปภาพไม่สำเร็จ (${e.message})`);
+                    errors.push(`แถวที่ ${idx + 1}: อัปโหลดรูปภาพไม่สำเร็จ (${e.message})`);
                 }
             } else if (mappedRow._original_photo_url) {
                 drivePhotoUrl = mappedRow._original_photo_url;
             }
 
+            mappedRow.drivePhotoUrl = drivePhotoUrl;
+            
+            currentProgress++;
+            if (jobId && global.uploadProgress[jobId]) {
+                // ให้ Drive upload คิดเป็น 50% ของ Progress
+                global.uploadProgress[jobId].current = Math.round((currentProgress / mappedData.length) * (mappedData.length * 0.5));
+            }
+        };
+    });
+
+    await limitConcurrency(driveTasks, 20);
+
+    // 2. Database Inserts (Concurrency 15)
+    let dbProgress = 0;
+    const dbTasks = mappedData.map((mappedRow, idx) => {
+        return async () => {
             const client = await pool.connect();
             try {
                 await client.query('BEGIN');
@@ -292,28 +312,38 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     agency_id = agencyRes.rows[0].agency_id;
                 }
 
+                let informantDob = mappedRow.reporter_date_of_birth ? parseDateForDB(mappedRow.reporter_date_of_birth) : null;
+                if (!informantDob && mappedRow.reporter_age) {
+                    let rAgeInt = parseInt(mappedRow.reporter_age);
+                    if (!isNaN(rAgeInt)) {
+                        informantDob = `${new Date().getFullYear() - rAgeInt}-01-01`;
+                    }
+                }
+
                 let informantQuery = `
-                    INSERT INTO informants (first_name_th, middle_name_th, last_name_th, first_name_en, middle_name_en, last_name_en, informant_contact_channel, informant_id_card_passport, informant_phone, informant_email) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    INSERT INTO informants (first_name_th, middle_name_th, last_name_th, first_name_en, middle_name_en, last_name_en, informant_contact_channel, informant_id_card_passport, informant_phone, informant_email, date_of_birth, gender) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     RETURNING informant_id
                 `;
                 let informantRes = await client.query(informantQuery, [
-                    validateLen(mappedRow.reporter_first_name_th, 255),
+                    validateLen(mappedRow.reporter_first_name_th || 'ไม่ระบุ', 255),
                     validateLen(mappedRow.reporter_middle_name_th, 255),
-                    validateLen(mappedRow.reporter_last_name_th, 255),
+                    validateLen(mappedRow.reporter_last_name_th || 'ไม่ระบุ', 255),
                     validateLen(mappedRow.reporter_first_name_en, 255),
                     validateLen(mappedRow.reporter_middle_name_en, 255),
                     validateLen(mappedRow.reporter_last_name_en, 255),
                     mappedRow.reporter_contact, 
                     validateLen(mappedRow.reporter_id_card, 50), 
                     validateLen(mappedRow.reporter_phone, 50), 
-                    validateLen(mappedRow.reporter_email, 100)
+                    validateLen(mappedRow.reporter_email, 100),
+                    informantDob,
+                    validateLen(mappedRow.reporter_gender, 50)
                 ]);
                 let informant_id = informantRes.rows[0].informant_id;
 
+                let missingDob = mappedRow.date_of_birth ? parseDateForDB(mappedRow.date_of_birth) : null;
                 let ageInt = parseInt(mappedRow.age);
-                let missingDob = null;
-                if (!isNaN(ageInt)) {
+                if (!missingDob && !isNaN(ageInt)) {
                     missingDob = `${new Date().getFullYear() - ageInt}-01-01`;
                 }
 
@@ -323,9 +353,9 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     RETURNING missing_person_id
                 `;
                 let missingRes = await client.query(missingQuery, [
-                    validateLen(mappedRow.missing_first_name_th, 255),
+                    validateLen(mappedRow.missing_first_name_th || 'ไม่ระบุ', 255),
                     validateLen(mappedRow.missing_middle_name_th, 255),
-                    validateLen(mappedRow.missing_last_name_th, 255),
+                    validateLen(mappedRow.missing_last_name_th || 'ไม่ระบุ', 255),
                     validateLen(mappedRow.missing_first_name_en, 255),
                     validateLen(mappedRow.missing_middle_name_en, 255),
                     validateLen(mappedRow.missing_last_name_en, 255),
@@ -359,7 +389,7 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     agency_id, informant_id, missing_person_id, validateLen(mappedRow.relationship, 100),
                     validateLen(mappedRow.entry_channel, 255), validateLen(mappedRow.entry_checkpoint, 255), 
                     validateLen(mappedRow.airline, 100), parseDateForDB(mappedRow.entry_date),
-                    mappedRow.detected_location_details, mappedRow.detected_location_sub_district, mappedRow.detected_location_district, mappedRow.detected_location_province, drivePhotoUrl,
+                    mappedRow.detected_location_details, mappedRow.detected_location_sub_district, mappedRow.detected_location_district, mappedRow.detected_location_province, mappedRow.drivePhotoUrl,
                     parseDateForDB(mappedRow.report_date), validateLen(mappedRow.report_channel, 255), 
                     mappedRow.circumstances, validateLen(mappedRow.case_no, 100), 
                     mappedRow.human_trafficking_indicator, mappedRow.victim_screening, validateLen(mappedRow.trafficking_type, 255),
@@ -374,16 +404,23 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                 successCount++;
             } catch (dbErr) {
                 await client.query('ROLLBACK');
-                console.error(`[DB Error Row ${i+1}]:`, dbErr.message);
-                errors.push(`แถวที่ ${i + 1}: ${dbErr.message}`);
+                console.error(`[DB Error Row ${idx+1}]:`, dbErr.message);
+                errors.push(`แถวที่ ${idx + 1}: ${dbErr.message}`);
             } finally {
                 client.release();
             }
-        }));
+            
+            dbProgress++;
+            if (jobId && global.uploadProgress[jobId]) {
+                global.uploadProgress[jobId].current = Math.round(((mappedData.length * 0.5) + (dbProgress / mappedData.length) * (mappedData.length * 0.5)));
+            }
+        };
+    });
 
-        if (jobId && global.uploadProgress[jobId]) {
-            global.uploadProgress[jobId].current += batch.length;
-        }
+    await limitConcurrency(dbTasks, 15);
+
+    if (successCount > 0) {
+        cache.clear();
     }
 
     if (jobId && global.uploadProgress[jobId]) global.uploadProgress[jobId].status = 'completed';

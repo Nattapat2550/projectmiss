@@ -1,4 +1,5 @@
 const missingService = require("../services/missingService");
+const cache = require("../utils/cache");
 
 exports.getMissingPersons = async (req, res) => {
     try {
@@ -30,6 +31,8 @@ exports.createMissingPerson = async (req, res) => {
         }
 
         const missing_person_id = await missingService.createMissingPersonRecord(req.body, req.file);
+
+        cache.clear();
 
         res.status(201).json({
             success: true,
@@ -64,6 +67,8 @@ exports.updateMissingPerson = async (req, res) => {
         
         await missingService.updateMissingPersonRecord(id, req.body, req.file);
 
+        cache.clear();
+
         res.status(200).json({ success: true, message: "แก้ไขข้อมูลสำเร็จ" });
     } catch (error) {
         console.error("Update Missing Person Error:", error.message);
@@ -76,6 +81,8 @@ exports.deleteMissingPerson = async (req, res) => {
         const { id } = req.params;
         
         await missingService.removeMissingPerson(id);
+
+        cache.clear();
 
         res.status(200).json({ success: true, message: "ลบข้อมูลสำเร็จ" });
     } catch (error) {

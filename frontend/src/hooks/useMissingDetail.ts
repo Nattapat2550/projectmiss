@@ -56,6 +56,12 @@ export function useMissingDetail(id: string) {
     }
   };
 
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData((prev: any) => ({ ...prev, photo_url: null })); // Optionally signal removal to backend if supported
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -98,8 +104,8 @@ export function useMissingDetail(id: string) {
   };
 
   return {
-    states: { data, loading, isEditing, formData, imagePreview, isSaving, note },
+    states: { data, loading, isEditing, formData, imagePreview, isSaving, note, imageFile },
     actions: { setIsEditing, setNote, fetchData },
-    handlers: { handleInputChange, handleImageChange, handleSave }
+    handlers: { handleInputChange, handleImageChange, handleSave, handleImageRemove }
   };
 }
