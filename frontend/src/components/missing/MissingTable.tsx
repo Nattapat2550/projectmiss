@@ -116,6 +116,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort, i
         <tbody>
           {data.length > 0 ? (
             data.map((person, index) => {
+              const personId = person.id || person.missing_person_id || `missing-row-${index}`;
               const fullName = helperGetFullName(person);
 
               const location = person.detected_location_province || person.address || person.detected_location_details || "ไม่ระบุสถานที่";
@@ -124,26 +125,26 @@ export default function MissingTable({ data, sortField, sortDirection, onSort, i
 
               return (
                 <tr
-                  key={person.id}
+                  key={personId}
                   onClick={() => {
                     if (isExportMode) {
-                      onToggleSelect?.(person.id);
+                      onToggleSelect?.(personId);
                     } else {
-                      router.push(`/missing/${person.id}`);
+                      router.push(`/missing/${personId}`);
                     }
                   }}
                   className="cursor-pointer transition-colors"
-                  style={{ backgroundColor: selectedIds?.includes(person.id) ? "var(--row-hover)" : "var(--background)", borderBottom: "1px solid var(--wrapper)" }}
+                  style={{ backgroundColor: selectedIds?.includes(personId) ? "var(--row-hover)" : "var(--background)", borderBottom: "1px solid var(--wrapper)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--row-hover)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = selectedIds?.includes(person.id) ? "var(--row-hover)" : "var(--background)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = selectedIds?.includes(personId) ? "var(--row-hover)" : "var(--background)")}
                 >
                   {isExportMode && (
                     <td className="px-4 py-3 text-center border-r" style={{ borderColor: "var(--wrapper)" }} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         className="w-4 h-4 cursor-pointer accent-(--blueText)"
-                        checked={selectedIds?.includes(person.id)}
-                        onChange={() => onToggleSelect?.(person.id)}
+                        checked={selectedIds?.includes(personId)}
+                        onChange={() => onToggleSelect?.(personId)}
                       />
                     </td>
                   )}
