@@ -7,7 +7,7 @@ import MissingTable, { SortField } from "@/components/missing/MissingTable";
 import MissingCard from "@/components/missing/MissingCard";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
 const missingTranslationMap: { [key: string]: string } = {
@@ -267,15 +267,18 @@ function MissingPageContent() {
           const id = selectedRows[i].id;
           const element = document.getElementById(`pdf-card-${id}`);
           if (element) {
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false });
-            const imgData = canvas.toDataURL("image/png");
+            // Use html-to-image to perfectly preserve Thai typography (vowels/tones) and CSS layout
+            const imgData = await toPng(element, { pixelRatio: 2, cacheBust: true });
+            
+            const width = element.offsetWidth * 2;
+            const height = element.offsetHeight * 2;
             
             if (!pdf) {
-              pdf = new jsPDF("l", "px", [canvas.width, canvas.height]);
+              pdf = new jsPDF("l", "px", [width, height]);
             } else {
-              pdf.addPage([canvas.width, canvas.height], "l");
+              pdf.addPage([width, height], "l");
             }
-            pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+            pdf.addImage(imgData, "PNG", 0, 0, width, height);
           }
         }
         if (pdf) pdf.save("missing_persons.pdf");

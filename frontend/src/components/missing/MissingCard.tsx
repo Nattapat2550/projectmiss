@@ -95,10 +95,15 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
 
   const flagUrl = getFlagUrl(data.nationality);
 
-  const fullNameTh = `${data.missing_first_name_th || ""}${data.missing_middle_name_th ? " " + data.missing_middle_name_th : ""} ${data.missing_last_name_th || ""}`.trim();
-  const fullNameEn = data.missing_first_name_en
-    ? `${data.missing_first_name_en}${data.missing_middle_name_en ? " " + data.missing_middle_name_en : ""} ${data.missing_last_name_en ?? ""}`.trim()
-    : "";
+  const fNameTh = data.missing_first_name_th || data.first_name_th || "";
+  const mNameTh = data.missing_middle_name_th || data.middle_name_th || "";
+  const lNameTh = data.missing_last_name_th || data.last_name_th || "";
+  const fullNameTh = `${fNameTh}${mNameTh ? " " + mNameTh : ""} ${lNameTh}`.trim();
+
+  const fNameEn = data.missing_first_name_en || data.first_name_en || "";
+  const mNameEn = data.missing_middle_name_en || data.middle_name_en || "";
+  const lNameEn = data.missing_last_name_en || data.last_name_en || "";
+  const fullNameEn = fNameEn ? `${fNameEn}${mNameEn ? " " + mNameEn : ""} ${lNameEn}`.trim() : "";
 
   const dateValue = formatDate(data.found_date);
 
@@ -167,7 +172,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
           <div className="flex justify-between w-full" style={{ marginBottom: "2%" }}>
             <div className="flex flex-col" style={{ width: "48.5%" }}>
               <ILabel>เลขประจำตัวประชาชน</ILabel>
-              <IBox mono>{formatNationalId(data.missing_id_card_passport) || "-"}</IBox>
+              <IBox mono>{formatNationalId(data.missing_id_card_passport || data.id_card_passport) || "-"}</IBox>
             </div>
             <div className="flex flex-col" style={{ width: "48.5%" }}>
               <ILabel>เลขที่หนังสือเดินทาง (Passport ID)</ILabel>
@@ -207,7 +212,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
           {/* แถว 5: ข้อมูลอื่นๆ ทั้งหมดจาก Structure.md */}
           <div className="flex flex-col flex-1 mb-1">
             <ILabel>ข้อมูลเพิ่มเติม (Additional Info)</ILabel>
-            <IBox noTruncate className="h-full justify-start! text-left pt-[2%] overflow-hidden">
+            <IBox noTruncate className="h-full justify-start! text-left overflow-hidden">
               <div className="flex flex-col gap-y-1.5 w-full" style={{ fontSize: "0.95em" }}>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
@@ -264,7 +269,7 @@ function ILabel({ children, className = "" }: { children: React.ReactNode; class
 function IBox({ children, mono = false, noTruncate = false, className = "" }: { children: React.ReactNode; mono?: boolean; noTruncate?: boolean; className?: string; }) {
   const isExporting = useContext(ExportContext);
   return (
-    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: isExporting ? "11px" : "clamp(6px, 1.3vw, 12px)", padding: isExporting ? "6px 10px" : "2.5% 4%" }}>
+    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: isExporting ? "11px" : "clamp(6px, 1.3vw, 12px)", padding: isExporting ? "6px 10px" : "0.6em 0.8em", lineHeight: 1.5 }}>
       {children}
     </div>
   );

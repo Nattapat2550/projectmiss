@@ -14,7 +14,7 @@
 		"@tanstack/react-table": "^8.21.3",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
-		"html2canvas": "^1.4.1",
+		"html-to-image": "^1.11.13",
 		"impeccable": "^3.0.1",
 		"jspdf": "^4.2.1",
 		"lucide-react": "^1.17.0",
