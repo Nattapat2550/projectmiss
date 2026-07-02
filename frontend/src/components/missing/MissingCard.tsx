@@ -1,17 +1,37 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 
 interface MissingCardProps {
   data: any; 
+  isExporting?: boolean;
 }
+
+const ExportContext = createContext<boolean>(false);
 
 const getDirectImageUrl = (url: string) => {
   if (!url) return "";
-  if (url.includes("drive.google.com/file/d/")) {
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+  let driveId = "";
+  
+  const matchFileD = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFileD && matchFileD[1]) {
+    driveId = matchFileD[1];
+  } else {
+    const matchId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchId && matchId[1]) {
+      driveId = matchId[1];
     }
   }
+
+  if (driveId) {
+    const thumbnailUrl = `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+    // Proxy through wsrv.nl to add CORS headers for html2canvas
+    return `https://wsrv.nl/?url=${encodeURIComponent(thumbnailUrl)}`;
+  }
+  
+  // For other external URLs, proxy them as well if they might have CORS issues
+  if (url.startsWith("http")) {
+    return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+  }
+
   return url;
 };
 
@@ -70,7 +90,7 @@ const getFlagUrl = (nationality: string) => {
   return foundKey ? `https://flagcdn.com/w40/${COUNTRY_MAP[foundKey]}.png` : null;
 };
 
-export default function MissingCard({ data }: MissingCardProps) {
+export default function MissingCard({ data, isExporting = false }: MissingCardProps) {
   if (!data) return null;
 
   const flagUrl = getFlagUrl(data.nationality);
@@ -117,13 +137,14 @@ export default function MissingCard({ data }: MissingCardProps) {
   const informantFullNameTh = `${data.informant_first_name_th || ""}${data.informant_middle_name_th ? " " + data.informant_middle_name_th : ""} ${data.informant_last_name_th || ""}`.trim();
 
   return (
-    <div className="relative w-full bg-[#DFF5EC] rounded-2xl border border-[#9DD8BE] shadow-md overflow-hidden font-sans pt-[6%] mb-6" style={{ aspectRatio: "856 / 540" }}>
-      
-      <div className="absolute top-[3%] left-0 w-full text-center">
-        <p className="font-bold text-[#022c22] tracking-wide" style={{ fontSize: "clamp(12px, 2.8vw, 24px)" }}>
-          ผู้สูญหาย
-        </p>
-      </div>
+    <ExportContext.Provider value={isExporting}>
+      <div className="relative w-full bg-[#DFF5EC] rounded-2xl border border-[#9DD8BE] shadow-md overflow-hidden font-sans pt-[6%] mb-6" style={{ aspectRatio: "856 / 540" }}>
+        
+        <div className="absolute top-[3%] left-0 w-full text-center">
+          <p className="font-bold text-[#022c22] tracking-wide" style={{ fontSize: isExporting ? "24px" : "clamp(12px, 2.8vw, 24px)" }}>
+            ผู้สูญหาย
+          </p>
+        </div>
 
       <div className="absolute inset-0 top-[11%] flex p-[4%] pt-0 gap-[3%]">
         
@@ -164,7 +185,7 @@ export default function MissingCard({ data }: MissingCardProps) {
               <ILabel>สัญชาติ</ILabel>
               <IBox>
                 <div className="flex items-center gap-1.5">
-                  {flagUrl && <img src={flagUrl} alt="flag" className="w-4.5 h-3.25 object-cover rounded-xs shadow-sm" />}
+                  {flagUrl && <img src={flagUrl} alt="flag" crossOrigin="anonymous" className="w-4.5 h-3.25 object-cover rounded-xs shadow-sm" />}
                   <span className="truncate">{data.nationality || "-"}</span>
                 </div>
               </IBox>
@@ -201,6 +222,7 @@ export default function MissingCard({ data }: MissingCardProps) {
                  alt="Profile" 
                  className="w-full h-full object-cover" 
                  referrerPolicy="no-referrer"
+                 crossOrigin="anonymous"
                />
             ) : (
               <div className="flex flex-col items-center justify-end w-full h-full pb-[8%]">
@@ -209,7 +231,7 @@ export default function MissingCard({ data }: MissingCardProps) {
             )}
           </div>
 
-          <span className={`w-full text-center ${victimColorClass} font-bold border rounded-full px-2 py-1 mb-[5%] flex items-center justify-center`} style={{ fontSize: "clamp(8px, 1.1vw, 12px)" }}>
+          <span className={`w-full text-center ${victimColorClass} font-bold border rounded-full px-2 py-1 mb-[5%] flex items-center justify-center`} style={{ fontSize: isExporting ? "11px" : "clamp(8px, 1.1vw, 12px)" }}>
             <span>{victimStatusStr}</span>
           </span>
 
@@ -221,16 +243,19 @@ export default function MissingCard({ data }: MissingCardProps) {
 
       </div>
     </div>
+  </ExportContext.Provider>
   );
 }
 
 function ILabel({ children, className = "" }: { children: React.ReactNode; className?: string; }) {
-  return <span className={`font-bold text-[#022c22] ${className}`} style={{ fontSize: "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
+  const isExporting = useContext(ExportContext);
+  return <span className={`font-bold text-[#022c22] ${className}`} style={{ fontSize: isExporting ? "10px" : "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
 }
 
 function IBox({ children, mono = false, noTruncate = false, className = "" }: { children: React.ReactNode; mono?: boolean; noTruncate?: boolean; className?: string; }) {
+  const isExporting = useContext(ExportContext);
   return (
-    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: "clamp(6px, 1.3vw, 12px)", padding: "2.5% 4%" }}>
+    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: isExporting ? "11px" : "clamp(6px, 1.3vw, 12px)", padding: isExporting ? "6px 10px" : "2.5% 4%" }}>
       {children}
     </div>
   );
