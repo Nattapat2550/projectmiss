@@ -67,15 +67,25 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
 
     const dataQuery = `
         SELECT
-            mp.missing_person_id, mp.first_name_th, mp.last_name_th, mp.first_name_en, mp.last_name_en,
+            mp.missing_person_id, mp.first_name_th, mp.middle_name_th, mp.last_name_th, mp.first_name_en, mp.middle_name_en, mp.last_name_en,
             EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) as age, mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.missing_date, c.missing_time, c.detected_location_details,
             c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
             c.photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result, c.police_station,
-            c.incident_summary, c.human_trafficking_indicators, c.notes
+            c.incident_summary, c.human_trafficking_indicators, c.notes,
+            c.pjv_number, c.pjv_file_url, c.victim_classification, c.human_trafficking_type, c.investigating_officer,
+            c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date, c.action_taken, c.relationship, c.receiving_channel,
+            i.first_name_th as informant_first_name_th, i.middle_name_th as informant_middle_name_th, i.last_name_th as informant_last_name_th,
+            i.first_name_en as informant_first_name_en, i.middle_name_en as informant_middle_name_en, i.last_name_en as informant_last_name_en,
+            i.date_of_birth as informant_date_of_birth, i.gender as informant_gender, i.nationality as informant_nationality,
+            i.informant_id_card_passport as informant_id_card_passport, i.informant_contact_channel as informant_contact_channel,
+            i.informant_phone as informant_phone, i.informant_email as informant_email,
+            a.command_center, a.division_1, a.division_2, a.division_3, a.division_4, a.division_5, a.division_6, a.division_7,
+            a.division_8, a.division_9, a.division_10, a.division_11, a.division_12, a.division_13, a.station, a.receiving_officer
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
+        LEFT JOIN agencies a ON c.agency_id = a.agency_id
         ${whereClause}
         ${orderClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

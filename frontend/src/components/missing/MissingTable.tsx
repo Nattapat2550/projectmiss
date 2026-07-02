@@ -94,7 +94,7 @@ export default function MissingTable({ data, sortField, sortDirection, onSort, i
         <thead>
           <tr style={{ borderBottom: "1px solid var(--wrapper)" }}>
             {isExportMode && (
-              <th className="px-4 py-3 text-center border-r w-[50px] shrink-0" style={{ backgroundColor: "var(--container)", borderColor: "var(--wrapper)" }}>
+              <th className="px-4 py-3 text-center border-r w-12.5 shrink-0" style={{ backgroundColor: "var(--container)", borderColor: "var(--wrapper)" }}>
                 <input
                   type="checkbox"
                   className="w-4 h-4 cursor-pointer accent-(--blueText)"

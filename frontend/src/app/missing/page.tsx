@@ -10,6 +10,89 @@ import * as XLSX from "xlsx";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+const missingTranslationMap: { [key: string]: string } = {
+  missing_person_id: "รหัสบุคคลสูญหาย (ID)",
+  first_name_th: "ชื่อจริง (ภาษาไทย)",
+  middle_name_th: "ชื่อกลาง (ภาษาไทย)",
+  last_name_th: "นามสกุล (ภาษาไทย)",
+  first_name_en: "ชื่อจริง (ภาษาอังกฤษ)",
+  middle_name_en: "ชื่อกลาง (ภาษาอังกฤษ)",
+  last_name_en: "นามสกุล (ภาษาอังกฤษ)",
+  date_of_birth: "วันเกิด",
+  gender: "เพศ",
+  nationality: "สัญชาติ",
+  passport_number: "เลขที่หนังสือเดินทาง",
+  missing_id_card_passport: "เลขประจำตัวประชาชน/พาสปอร์ต",
+  case_id: "รหัสกรณีสูญหาย (Case ID)",
+  missing_date: "วันที่สูญหาย",
+  missing_time: "เวลาที่สูญหาย",
+  detected_location_details: "รายละเอียดสถานที่สูญหาย",
+  detected_location_sub_district: "ตำบลที่สูญหาย",
+  detected_location_district: "อำเภอที่สูญหาย",
+  detected_location_province: "จังหวัดที่สูญหาย",
+  photo_url: "ลิงก์รูปถ่าย",
+  found_date: "วันที่พบตัว",
+  reported_date: "วันที่รับแจ้งความ",
+  case_number: "เลขคดีความ",
+  operation_result: "ผลการดำเนินการ/สถานะพบตัว",
+  police_station: "สถานีตำรวจที่รับแจ้ง",
+  incident_summary: "สรุปพฤติการณ์เหตุการณ์",
+  human_trafficking_indicators: "ข้อบ่งชี้การค้ามนุษย์",
+  notes: "หมายเหตุเพิ่มเติม",
+  pjv_number: "เลข ปจว. ที่รับแจ้ง",
+  pjv_file_url: "ลิงก์ไฟล์/ภาพถ่าย ปจว.",
+  victim_classification: "ผลการคัดแยกเหยื่อ",
+  human_trafficking_type: "ประเภทของการค้ามนุษย์",
+  investigating_officer: "พนักงานสอบสวนผู้รับผิดชอบ",
+  entry_channel: "ช่องทางการเข้าเมือง",
+  entry_checkpoint_province: "ด่านและจังหวัดที่เข้าเมือง",
+  airline: "สายการบิน",
+  entry_date: "วันที่เดินทางเข้าเมือง",
+  action_taken: "การดำเนินการที่ผ่านมา",
+  relationship: "ความสัมพันธ์กับผู้แจ้งความ",
+  receiving_channel: "ช่องทางการรับแจ้งเหตุ",
+  command_center: "กองบัญชาการที่รับแจ้ง (บช.)",
+  division_1: "กองบังคับการ (บก.) 1",
+  division_2: "กองบังคับการ (บก.) 2",
+  division_3: "กองบังคับการ (บก.) 3",
+  division_4: "กองบังคับการ (บก.) 4",
+  division_5: "กองบังคับการ (บก.) 5",
+  division_6: "กองบังคับการ (บก.) 6",
+  division_7: "กองบังคับการ (บก.) 7",
+  division_8: "กองบังคับการ (บก.) 8",
+  division_9: "กองบังคับการ (บก.) 9",
+  division_10: "กองบังคับการ (บก.) 10",
+  division_11: "กองบังคับการ (บก.) 11",
+  division_12: "กองบังคับการ (บก.) 12",
+  division_13: "กองบังคับการ (บก.) 13",
+  station: "สังกัด สน./สภ.",
+  receiving_officer: "เจ้าหน้าที่ตำรวจผู้รับแจ้ง",
+  informant_first_name_th: "ชื่อจริงผู้แจ้ง (ภาษาไทย)",
+  informant_middle_name_th: "ชื่อกลางผู้แจ้ง (ภาษาไทย)",
+  informant_last_name_th: "นามสกุลผู้แจ้ง (ภาษาไทย)",
+  informant_first_name_en: "ชื่อจริงผู้แจ้ง (ภาษาอังกฤษ)",
+  informant_middle_name_en: "ชื่อกลางผู้แจ้ง (ภาษาอังกฤษ)",
+  informant_last_name_en: "นามสกุลผู้แจ้ง (ภาษาอังกฤษ)",
+  informant_date_of_birth: "วันเกิดผู้แจ้ง",
+  informant_gender: "เพศผู้แจ้ง",
+  informant_nationality: "สัญชาติผู้แจ้ง",
+  informant_id_card_passport: "เลขประจำตัวประชาชน/พาสปอร์ตผู้แจ้ง",
+  informant_contact_channel: "ช่องทางการติดต่อผู้แจ้ง",
+  informant_phone: "เบอร์โทรศัพท์ผู้แจ้ง",
+  informant_email: "อีเมลผู้แจ้ง",
+  age: "อายุ",
+};
+
+const formatValue = (key: string, val: any) => {
+  if (val === null || val === undefined) return "-";
+  if (key.includes("date") && typeof val === "string" && !isNaN(Date.parse(val))) {
+    return new Date(val).toLocaleDateString("th-TH");
+  }
+  if (val === true || val === "true") return "ใช่";
+  if (val === false || val === "false") return "ไม่ใช่";
+  return val;
+};
+
 function MissingPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
@@ -148,24 +231,23 @@ function MissingPageContent() {
     if (result.isConfirmed) {
       // Excel
       const selectedData = selectedRows.map((person: any) => {
-        const fullNameTh = `${person.missing_first_name_th || ""} ${person.missing_last_name_th || ""}`.trim();
-        const fullNameEn = `${person.missing_first_name_en || ""} ${person.missing_last_name_en || ""}`.trim();
-        const finalName = (fullNameTh && fullNameTh !== "ไม่ระบุ" && fullNameTh !== "ไม่ระบุ ไม่ระบุ") ? fullNameTh : (fullNameEn && fullNameEn !== "ไม่ระบุ" && fullNameEn !== "ไม่ระบุ ไม่ระบุ") ? fullNameEn : "ไม่ระบุชื่อ";
+        const row: any = {};
+        const formattedKeys = ["first_name_th", "middle_name_th", "last_name_th", "first_name_en", "middle_name_en", "last_name_en", "date_of_birth", "gender", "human_trafficking_indicators", "operation_result", "id"];
 
-        const row: any = {
-          "ชื่อ - นามสกุล": finalName,
-          "สัญชาติ": person.nationality || "ไม่ระบุ",
-          "วันเกิด": person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString("th-TH") : "-",
-          "เพศ": person.gender === "MALE" ? "ชาย" : person.gender === "FEMALE" ? "หญิง" : person.gender === "UNKNOWN" ? "ไม่ระบุ" : person.gender,
-          "สถานที่สูญหายล่าสุด": [person.detected_location_province, person.address, person.detected_location_details].find(v => v) || "ไม่ระบุสถานที่",
-          "วันที่รับแจ้ง": person.missing_date ? new Date(person.missing_date).toLocaleDateString("th-TH") : person.detected_date ? new Date(person.detected_date).toLocaleDateString("th-TH") : "-",
-          "ข้อบ่งชี้ค้ามนุษย์": person.human_trafficking_indicators === true || person.human_trafficking_indicators === "YES" || person.human_trafficking_indicators === "true" ? "เข้าข่ายค้ามนุษย์" : person.human_trafficking_indicators === false || person.human_trafficking_indicators === "NO" || person.human_trafficking_indicators === "false" ? "ไม่เข้าข่าย" : "รอคัดแยก",
-          "สถานะ": (person.return_date || person.found_date || person.result === true || person.result === "true" || person.operation_result === true || person.operation_result === "true") ? "พบตัวแล้ว" : "ยังไม่พบตัว"
-        };
-        // นำคอลัมน์อื่นๆ ทั้งหมดจาก DB มาต่อท้าย
+        const fullNameTh = `${person.first_name_th || ""} ${person.middle_name_th || ""} ${person.last_name_th || ""}`.replace(/\s+/g, ' ').trim();
+        const fullNameEn = `${person.first_name_en || ""} ${person.middle_name_en || ""} ${person.last_name_en || ""}`.replace(/\s+/g, ' ').trim();
+        const finalName = (fullNameTh && fullNameTh !== "ไม่ระบุ") ? fullNameTh : (fullNameEn && fullNameEn !== "ไม่ระบุ") ? fullNameEn : "ไม่ระบุชื่อ";
+
+        row["ชื่อ - นามสกุล"] = finalName;
+        row["วันเกิด"] = person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString("th-TH") : "-";
+        row["เพศ"] = person.gender === "MALE" ? "ชาย" : person.gender === "FEMALE" ? "หญิง" : person.gender === "UNKNOWN" ? "ไม่ระบุ" : person.gender || "-";
+        row["ข้อบ่งชี้ค้ามนุษย์"] = person.human_trafficking_indicators === true || person.human_trafficking_indicators === "YES" || person.human_trafficking_indicators === "true" ? "เข้าข่ายค้ามนุษย์" : person.human_trafficking_indicators === false || person.human_trafficking_indicators === "NO" || person.human_trafficking_indicators === "false" ? "ไม่เข้าข่าย" : "รอคัดแยก";
+        row["สถานะพบตัว"] = (person.return_date || person.found_date || person.result === true || person.result === "true" || person.operation_result === true || person.operation_result === "true") ? "พบตัวแล้ว" : "ยังไม่พบตัว";
+
         Object.keys(person).forEach(key => {
-          if (!["missing_first_name_th", "missing_last_name_th", "missing_first_name_en", "missing_last_name_en", "nationality", "date_of_birth", "gender", "detected_location_province", "address", "detected_location_details", "missing_date", "detected_date", "human_trafficking_indicators", "return_date", "found_date", "result", "operation_result", "id"].includes(key)) {
-            row[key] = person[key];
+          if (!formattedKeys.includes(key)) {
+            const thaiKey = missingTranslationMap[key] || key;
+            row[thaiKey] = formatValue(key, person[key]);
           }
         });
         return row;
