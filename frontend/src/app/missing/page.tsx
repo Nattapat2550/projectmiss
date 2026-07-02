@@ -4,6 +4,11 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import MissingTable, { SortField } from "@/components/missing/MissingTable";
+import MissingCard from "@/components/missing/MissingCard";
+import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 function MissingPageContent() {
   const searchParams = useSearchParams();
@@ -20,6 +25,12 @@ function MissingPageContent() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const [isExportMode, setIsExportMode] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  
+  const selectedIds = selectedRows.map(r => r.id);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,8 +94,123 @@ function MissingPageContent() {
     setCurrentPage(1); 
   };
 
-  const tableRows = data?.tableData || [];
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setIsExportMode(false);
+    setSelectedRows([]);
+  };
 
+  const handleCancelExport = () => {
+    setIsExportMode(false);
+    setSelectedRows([]);
+  };
+
+  const handleToggleSelect = (id: string) => {
+    const isSelected = selectedRows.some(r => r.id === id);
+    if (isSelected) {
+      setSelectedRows(prev => prev.filter(r => r.id !== id));
+    } else {
+      const person = tableRows.find((r: any) => r.id === id);
+      if (person) setSelectedRows(prev => [...prev, person]);
+    }
+  };
+
+  const handleSelectAll = (selectAll: boolean) => {
+    if (selectAll) {
+      const newRows = [...selectedRows];
+      tableRows.forEach((r: any) => {
+        if (!newRows.some(nr => nr.id === r.id)) newRows.push(r);
+      });
+      setSelectedRows(newRows);
+    } else {
+      const currentViewIds = tableRows.map((r: any) => r.id);
+      setSelectedRows(prev => prev.filter(r => !currentViewIds.includes(r.id)));
+    }
+  };
+
+  const handleExportConfirm = async () => {
+    if (selectedRows.length === 0) {
+      Swal.fire({ title: "เกิดข้อผิดพลาด", text: "กรุณาเลือกข้อมูลอย่างน้อย 1 รายการ", icon: "warning" });
+      return;
+    }
+    
+    const result = await Swal.fire({
+      title: "เลือกรูปแบบการ Export",
+      text: `คุณได้เลือกข้อมูล ${selectedRows.length} รายการ`,
+      icon: "question",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: "Excel",
+      denyButtonText: "PDF",
+      cancelButtonText: "ยกเลิก"
+    });
+
+    if (result.isConfirmed) {
+      // Excel
+      const selectedData = selectedRows.map((person: any) => {
+        const fullNameTh = `${person.missing_first_name_th || ""} ${person.missing_last_name_th || ""}`.trim();
+        const fullNameEn = `${person.missing_first_name_en || ""} ${person.missing_last_name_en || ""}`.trim();
+        const finalName = (fullNameTh && fullNameTh !== "ไม่ระบุ" && fullNameTh !== "ไม่ระบุ ไม่ระบุ") ? fullNameTh : (fullNameEn && fullNameEn !== "ไม่ระบุ" && fullNameEn !== "ไม่ระบุ ไม่ระบุ") ? fullNameEn : "ไม่ระบุชื่อ";
+
+        const row: any = {
+          "ชื่อ - นามสกุล": finalName,
+          "สัญชาติ": person.nationality || "ไม่ระบุ",
+          "วันเกิด": person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString("th-TH") : "-",
+          "เพศ": person.gender === "MALE" ? "ชาย" : person.gender === "FEMALE" ? "หญิง" : person.gender === "UNKNOWN" ? "ไม่ระบุ" : person.gender,
+          "สถานที่สูญหายล่าสุด": [person.detected_location_province, person.address, person.detected_location_details].find(v => v) || "ไม่ระบุสถานที่",
+          "วันที่รับแจ้ง": person.missing_date ? new Date(person.missing_date).toLocaleDateString("th-TH") : person.detected_date ? new Date(person.detected_date).toLocaleDateString("th-TH") : "-",
+          "ข้อบ่งชี้ค้ามนุษย์": person.human_trafficking_indicators === true || person.human_trafficking_indicators === "YES" || person.human_trafficking_indicators === "true" ? "เข้าข่ายค้ามนุษย์" : person.human_trafficking_indicators === false || person.human_trafficking_indicators === "NO" || person.human_trafficking_indicators === "false" ? "ไม่เข้าข่าย" : "รอคัดแยก",
+          "สถานะ": (person.return_date || person.found_date || person.result === true || person.result === "true" || person.operation_result === true || person.operation_result === "true") ? "พบตัวแล้ว" : "ยังไม่พบตัว"
+        };
+        // นำคอลัมน์อื่นๆ ทั้งหมดจาก DB มาต่อท้าย
+        Object.keys(person).forEach(key => {
+          if (!["missing_first_name_th", "missing_last_name_th", "missing_first_name_en", "missing_last_name_en", "nationality", "date_of_birth", "gender", "detected_location_province", "address", "detected_location_details", "missing_date", "detected_date", "human_trafficking_indicators", "return_date", "found_date", "result", "operation_result", "id"].includes(key)) {
+            row[key] = person[key];
+          }
+        });
+        return row;
+      });
+      const ws = XLSX.utils.json_to_sheet(selectedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Missing Persons");
+      XLSX.writeFile(wb, "missing_persons.xlsx");
+      handleCancelExport();
+    } else if (result.isDenied) {
+      // PDF
+      setIsExporting(true);
+      Swal.fire({ title: "กำลังสร้าง PDF", text: "กรุณารอสักครู่...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        let pdf: any = null;
+        for (let i = 0; i < selectedRows.length; i++) {
+          const id = selectedRows[i].id;
+          const element = document.getElementById(`pdf-card-${id}`);
+          if (element) {
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false });
+            const imgData = canvas.toDataURL("image/png");
+            
+            if (!pdf) {
+              pdf = new jsPDF("l", "px", [canvas.width, canvas.height]);
+            } else {
+              pdf.addPage([canvas.width, canvas.height], "l");
+            }
+            pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+          }
+        }
+        if (pdf) pdf.save("missing_persons.pdf");
+      } catch (err) {
+        console.error("PDF Export error:", err);
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถสร้างไฟล์ PDF ได้", "error");
+      } finally {
+        setIsExporting(false);
+        handleCancelExport();
+        Swal.close();
+      }
+    }
+  };
+  const tableRows = (data?.tableData || []).map((item: any) => ({
+    ...item,
+    id: item.missing_person_id || item.id
+  }));
   const totalItems = data?.meta?.totalItems || 0;
   const totalPages = data?.meta?.totalPages || 1;
 
@@ -95,9 +221,27 @@ function MissingPageContent() {
           
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-(--header)">ข้อมูลบุคคลสูญหาย (Missing Persons)</h1>
-            <Link href="/missing/create" className="px-4 py-2 bg-(--header) text-background font-bold rounded-sm hover:opacity-90 transition text-sm">
-              + เพิ่มข้อมูล
-            </Link>
+            <div className="flex gap-2">
+              {isExportMode ? (
+                <>
+                  <button onClick={handleCancelExport} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-foreground font-bold rounded-sm hover:opacity-90 transition text-sm cursor-pointer">
+                    ยกเลิก
+                  </button>
+                  <button onClick={handleExportConfirm} disabled={isExporting} className="px-4 py-2 bg-(--blueText) text-(--button) font-bold rounded-sm hover:opacity-90 transition text-sm cursor-pointer disabled:opacity-50">
+                    {isExporting ? "กำลัง Export..." : `ยืนยัน (${selectedRows.length})`}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setIsExportMode(true)} className="px-4 py-2 bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900 font-bold rounded-sm hover:opacity-90 transition text-sm cursor-pointer">
+                    Export
+                  </button>
+                  <Link href="/missing/create" className="px-4 py-2 bg-(--header) text-background font-bold rounded-sm hover:opacity-90 transition text-sm">
+                    + เพิ่มข้อมูล
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="mb-6 flex items-center px-4 py-2 border rounded-sm shadow-[0_1px_2px_var(--shadow)] bg-(--container) border-(--wrapper) text-foreground focus-within:ring-2 focus-within:ring-(--header) transition-all">
@@ -143,6 +287,10 @@ function MissingPageContent() {
                 sortField={sortField} 
                 sortDirection={sortDirection} 
                 onSort={handleSort} 
+                isExportMode={isExportMode}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onSelectAll={handleSelectAll}
               />
 
               {totalPages > 0 && (() => {
@@ -168,7 +316,7 @@ function MissingPageContent() {
                       <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           disabled={currentPage === 1}
-                          onClick={() => setCurrentPage(1)}
+                          onClick={() => handlePageChange(1)}
                           className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
                           title="หน้าแรกสุด"
                         >
@@ -176,7 +324,7 @@ function MissingPageContent() {
                         </button>
                         <button
                           disabled={currentPage === 1}
-                          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                          onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                           className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
                           title="ก่อนหน้า"
                         >
@@ -187,7 +335,7 @@ function MissingPageContent() {
                           {pageNumbers.map((page) => (
                             <button
                               key={page}
-                              onClick={() => setCurrentPage(page)}
+                              onClick={() => handlePageChange(page)}
                               className={`px-3 py-2 border rounded-sm text-sm font-medium transition cursor-pointer ${
                                 page === currentPage
                                   ? "bg-(--header) text-background font-bold pointer-events-none border-transparent"
@@ -201,7 +349,7 @@ function MissingPageContent() {
 
                         <button
                           disabled={currentPage === totalPages}
-                          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                          onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                           className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
                           title="ถัดไป"
                         >
@@ -209,7 +357,7 @@ function MissingPageContent() {
                         </button>
                         <button
                           disabled={currentPage === totalPages}
-                          onClick={() => setCurrentPage(totalPages)}
+                          onClick={() => handlePageChange(totalPages)}
                           className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
                           title="หน้าท้ายสุด"
                         >
@@ -224,6 +372,16 @@ function MissingPageContent() {
 
         </div>
       </div>
+      
+      {isExportMode && selectedRows.length > 0 && (
+        <div style={{ position: "absolute", left: "-9999px", top: 0, fontFamily: "'Sarabun', sans-serif" }}>
+          {selectedRows.map((person: any) => (
+            <div key={person.id} id={`pdf-card-${person.id}`} style={{ width: "856px", height: "540px", backgroundColor: "white" }}>
+              <MissingCard data={person} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

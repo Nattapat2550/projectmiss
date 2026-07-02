@@ -104,14 +104,14 @@ export default function MissingCard({ data }: MissingCardProps) {
   };
 
   let victimStatusStr = "ไม่คัดกรองสถานะ";
-  let victimColorClass = "text-yellow-700 bg-yellow-100 border-yellow-400";
+  let victimColorClass = "text-[#a16207] bg-[#fef9c3] border-[#facc15]";
 
   if (data.human_trafficking_indicators === true || data.human_trafficking_indicators === "YES" || data.human_trafficking_indicators === "true") {
     victimStatusStr = "เป็นผู้เสียหาย";
-    victimColorClass = "text-red-700 bg-red-100 border-red-400";
+    victimColorClass = "text-[#b91c1c] bg-[#fee2e2] border-[#f87171]";
   } else if (data.human_trafficking_indicators === false || data.human_trafficking_indicators === "NO" || data.human_trafficking_indicators === "false") {
     victimStatusStr = "ไม่เป็นผู้เสียหาย";
-    victimColorClass = "text-green-700 bg-green-100 border-green-400";
+    victimColorClass = "text-[#15803d] bg-[#dcfce7] border-[#4ade80]";
   }
 
   const informantFullNameTh = `${data.informant_first_name_th || ""}${data.informant_middle_name_th ? " " + data.informant_middle_name_th : ""} ${data.informant_last_name_th || ""}`.trim();
@@ -120,7 +120,7 @@ export default function MissingCard({ data }: MissingCardProps) {
     <div className="relative w-full bg-[#DFF5EC] rounded-2xl border border-[#9DD8BE] shadow-md overflow-hidden font-sans pt-[6%] mb-6" style={{ aspectRatio: "856 / 540" }}>
       
       <div className="absolute top-[3%] left-0 w-full text-center">
-        <p className="font-bold text-emerald-950 tracking-wide" style={{ fontSize: "clamp(12px, 2.8vw, 24px)" }}>
+        <p className="font-bold text-[#022c22] tracking-wide" style={{ fontSize: "clamp(12px, 2.8vw, 24px)" }}>
           ผู้สูญหาย
         </p>
       </div>
@@ -182,11 +182,11 @@ export default function MissingCard({ data }: MissingCardProps) {
             <ILabel>ข้อมูลเพิ่มเติม (Additional Info)</ILabel>
             <IBox noTruncate className="h-full justify-start! text-left pt-[2%] overflow-hidden">
               <div className="flex flex-col gap-y-1.5 w-full" style={{ fontSize: "0.95em" }}>
-                <div className="wrap-break-word"><span className="font-semibold text-emerald-950">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-emerald-950">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-emerald-950">สน.ที่รับแจ้ง:</span> {data.police_station || "-"}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-emerald-950">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-emerald-950">ผู้แจ้ง:</span> {informantFullNameTh || "ไม่ระบุ"} (โทร: {data.informant_phone || "-"}, ความเกี่ยวข้อง: {data.relationship || "-"})</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">สน.ที่รับแจ้ง:</span> {data.police_station || "-"}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">ผู้แจ้ง:</span> {informantFullNameTh || "ไม่ระบุ"} (โทร: {data.informant_phone || "-"}, ความเกี่ยวข้อง: {data.relationship || "-"})</div>
               </div>
             </IBox>
           </div>
@@ -194,7 +194,7 @@ export default function MissingCard({ data }: MissingCardProps) {
         </div>
 
         <div className="flex flex-col items-center shrink-0" style={{ width: "30%" }}>
-          <div className="bg-white border border-emerald-200 rounded-xl flex items-end justify-center overflow-hidden shadow-inner relative w-full mb-[5%]" style={{ aspectRatio: "3/4" }}>
+          <div className="bg-white border border-[#a7f3d0] rounded-xl flex items-end justify-center overflow-hidden shadow-inner relative w-full mb-[5%]" style={{ aspectRatio: "3/4" }}>
             {data.photo_url ? (
                <img 
                  src={getDirectImageUrl(data.photo_url)} 
@@ -225,12 +225,12 @@ export default function MissingCard({ data }: MissingCardProps) {
 }
 
 function ILabel({ children, className = "" }: { children: React.ReactNode; className?: string; }) {
-  return <span className={`font-bold text-emerald-950 ${className}`} style={{ fontSize: "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
+  return <span className={`font-bold text-[#022c22] ${className}`} style={{ fontSize: "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
 }
 
 function IBox({ children, mono = false, noTruncate = false, className = "" }: { children: React.ReactNode; mono?: boolean; noTruncate?: boolean; className?: string; }) {
   return (
-    <div className={`bg-[#B8E8D4] rounded-md text-emerald-900 font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: "clamp(6px, 1.3vw, 12px)", padding: "2.5% 4%" }}>
+    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: "clamp(6px, 1.3vw, 12px)", padding: "2.5% 4%" }}>
       {children}
     </div>
   );
