@@ -154,19 +154,22 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             police_substation: getVal(row, ["สังกัด สน./สภ.", "สน./สภ.", "สน/สภ", "สน.", "สภ."]),
             investigator: getVal(row, ["พนักงานสอบสวนผู้รับผิดชอบ"]),
             police_command: getVal(row, ["กองบัญชาการที่รับแจ้ง", "1. กรุณาเลือก กองบัญชาการ (บช.)", "กรุณาเลือก กองบัญชาการ (บช.)"]),
-            division_1: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.)", "กองบังคับการ (บก.)"]),
-            division_2: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 2"]),
-            division_3: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 3"]),
-            division_4: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 4"]),
-            division_5: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 5"]),
-            division_6: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 6"]),
-            division_7: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 7"]),
-            division_8: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 8"]),
-            division_9: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 9"]),
-            division_10: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 10"]),
-            division_11: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 11"]),
-            division_12: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 12"]),
-            division_13: getVal(row, ["กรุณาเลือก กองบังคับการ (บก.) 13"]),
+            division_type: (() => {
+                for(let i=1; i<=13; i++) {
+                    const colNames = i === 1 ? ["กรุณาเลือก กองบังคับการ (บก.)", "กองบังคับการ (บก.)"] : [`กรุณาเลือก กองบังคับการ (บก.) ${i}`];
+                    const val = getVal(row, colNames);
+                    if (val && val.toString().trim() !== "" && val.toString().trim() !== "ไม่ระบุ") return `division_${i}`;
+                }
+                return null;
+            })(),
+            division_name: (() => {
+                for(let i=1; i<=13; i++) {
+                    const colNames = i === 1 ? ["กรุณาเลือก กองบังคับการ (บก.)", "กองบังคับการ (บก.)"] : [`กรุณาเลือก กองบังคับการ (บก.) ${i}`];
+                    const val = getVal(row, colNames);
+                    if (val && val.toString().trim() !== "" && val.toString().trim() !== "ไม่ระบุ") return val.toString().trim();
+                }
+                return null;
+            })(),
             missing_first_name_th,
             missing_middle_name_th,
             missing_last_name_th,
@@ -274,19 +277,21 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                 await client.query('BEGIN');
                 
                 let stationCombined = [mappedRow.police_station, mappedRow.police_substation].filter(Boolean).join(' ') || null;
+                let officerName = mappedRow.police_receiver || mappedRow.investigator || '';
                 let agency_id;
 
                 let agencyCheckQuery = `
                     SELECT agency_id FROM agencies 
-                    WHERE command_center IS NOT DISTINCT FROM $1 
-                      AND station IS NOT DISTINCT FROM $2 
-                      AND receiving_officer IS NOT DISTINCT FROM $3
+                    WHERE COALESCE(command_center, '') = COALESCE($1, '') 
+                      AND COALESCE(station, '') = COALESCE($2, '') 
+                      AND COALESCE(officer_name, '') = COALESCE($3, '')
+                    LIMIT 1
                 `;
                 
                 let agencyCheckRes = await client.query(agencyCheckQuery, [
-                    validateLen(mappedRow.police_command, 255), 
-                    validateLen(stationCombined, 255), 
-                    validateLen(mappedRow.police_receiver, 255)
+                    validateLen(mappedRow.police_command, 255) || '', 
+                    validateLen(stationCombined, 255) || '', 
+                    validateLen(officerName, 255) || ''
                 ]);
                 
                 if (agencyCheckRes.rows.length > 0) {
@@ -294,20 +299,16 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                 } else {
                     let agencyQuery = `
                         INSERT INTO agencies (
-                            command_center, station, receiving_officer,
-                            division_1, division_2, division_3, division_4, division_5,
-                            division_6, division_7, division_8, division_9, division_10,
-                            division_11, division_12, division_13
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+                            command_center, station, officer_name,
+                            division_type, division_name
+                        ) VALUES ($1, $2, $3, $4, $5) 
                         RETURNING agency_id
                     `;
                     let agencyRes = await client.query(agencyQuery, [
-                        validateLen(mappedRow.police_command, 255), validateLen(stationCombined, 255), validateLen(mappedRow.police_receiver, 255),
-                        validateLen(mappedRow.division_1, 255), validateLen(mappedRow.division_2, 255), validateLen(mappedRow.division_3, 255), 
-                        validateLen(mappedRow.division_4, 255), validateLen(mappedRow.division_5, 255), validateLen(mappedRow.division_6, 255), 
-                        validateLen(mappedRow.division_7, 255), validateLen(mappedRow.division_8, 255), validateLen(mappedRow.division_9, 255), 
-                        validateLen(mappedRow.division_10, 255), validateLen(mappedRow.division_11, 255), validateLen(mappedRow.division_12, 255), 
-                        validateLen(mappedRow.division_13, 255)
+                        validateLen(mappedRow.police_command, 255), validateLen(stationCombined, 255),
+                        validateLen(officerName, 255),
+                        mappedRow.division_type || 'division_1',
+                        validateLen(mappedRow.division_name || 'ไม่ระบุ', 255)
                     ]);
                     agency_id = agencyRes.rows[0].agency_id;
                 }
@@ -372,8 +373,8 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                         detected_location_details, detected_location_sub_district, detected_location_district, detected_location_province, photo_url,
                         reported_date, receiving_channel, incident_summary, case_number, 
                         human_trafficking_indicators, victim_classification, human_trafficking_type, 
-                        action_taken, operation_result, found_date, notes, police_station,
-                        investigating_officer, missing_date, missing_time, pjv_number, pjv_file_url
+                        action_taken, operation_result, found_date, notes,
+                        investigating_id, missing_date, missing_time, pjv_number, pjv_file_url
                     ) VALUES (
                         $1, $2, $3, $4, 
                         $5, $6, $7, $8, 
@@ -381,7 +382,7 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                         $14, $15, $16, $17, 
                         $18, $19, $20, 
                         $21, $22, $23, $24, $25, 
-                        $26, $27, $28, $29, $30
+                        $26, $27, $28, $29
                     )
                 `;
                 
@@ -394,8 +395,8 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     mappedRow.circumstances, validateLen(mappedRow.case_no, 100), 
                     mappedRow.human_trafficking_indicator, mappedRow.victim_screening, validateLen(mappedRow.trafficking_type, 255),
                     mappedRow.action_taken, mappedRow.operation_result, parseDateForDB(mappedRow.found_date), 
-                    mappedRow.note, validateLen(stationCombined, 255),
-                    validateLen(mappedRow.investigator, 255), parseDateForDB(mappedRow.missing_date), mappedRow.missing_time, 
+                    mappedRow.note,
+                    agency_id, parseDateForDB(mappedRow.missing_date), mappedRow.missing_time, 
                     validateLen(mappedRow.pjv_number, 100), mappedRow.pjv_file_url
                 ]);
 

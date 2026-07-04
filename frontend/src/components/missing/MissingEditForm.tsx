@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Save, X, Camera as ImageIcon } from "lucide-react";
-import { useAddressOptions } from "@/hooks/useAddressOptions";
+import SingleImageField from "@/components/form/single-image-field";
 import AutocompleteInput from "@/components/ui/AutocompleteInput";
 import { ALL_NATIONALITIES } from "@/constants/nationalities";
+import { useAddressOptions } from "@/hooks/useAddressOptions";
+import { useAgenciesOptions } from "@/hooks/useAgenciesOptions";
 
 export default function MissingEditForm({ 
   formData, isSaving, imagePreview, imageFile,
@@ -10,6 +12,12 @@ export default function MissingEditForm({
 }: any) {
   const { handleInputChange, handleImageChange, handleSave, handleImageRemove } = handlers;
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+  const handleActiveDivisionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value;
+    handleInputChange({ target: { name: "division_type", value: newType } } as any);
+    handleInputChange({ target: { name: "division_name", value: "" } } as any);
+  };
 
   // 🟢 ฟังก์ชันแปลงลิงก์อัจฉริยะ (ดึงมาจากหน้าการ์ดที่แสดงผลได้สำเร็จ)
   const getFullImageUrl = (url: string) => {
@@ -48,8 +56,8 @@ export default function MissingEditForm({
 
   const inputClass = "w-full border px-3 py-1.5 text-sm rounded-sm bg-background !text-black dark:!text-white border-(--wrapper) focus:outline-none transition-all";
   const labelClass = "block text-xs font-semibold mb-1.5 !text-black dark:!text-white opacity-80";
-
-  const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province || "", formData.detected_location_district || "");
+  const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
+  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_type, formData.division_name, formData.station);
 
   const handleSelectDetDistrict = (opt: any) => {
     const { district, province } = opt.extra;
@@ -185,16 +193,35 @@ export default function MissingEditForm({
             <div><label className={labelClass}>อีเมล (ผู้แจ้ง)</label><input type="email" name="informant_email" value={formData.informant_email || ""} onChange={handleInputChange} className={inputClass} /></div>
           </div>
           
-          <h3 className="text-xl font-bold text-(--header) mb-4 mt-8">สถานีตำรวจ</h3>
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-5">
-            <div><label className={labelClass}>สถานีตำรวจที่รับแจ้ง</label><input type="text" name="police_station" value={formData.police_station || ""} onChange={handleInputChange} className={inputClass} /></div>
+          <h3 className="text-xl font-bold text-(--header) mb-4 mt-8">สถานีตำรวจที่รับแจ้ง</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+            <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center || ""} options={commandCenterOptions} onChange={handleInputChange} className={inputClass} /></div>
+            
+            <div className="flex flex-col lg:flex-row gap-2 col-span-1">
+              <div className="w-full lg:w-1/3">
+                <label className={labelClass}>เลือก บก.</label>
+                <select value={formData.division_type || "division_1"} onChange={handleActiveDivisionTypeChange} className={inputClass}>
+                  {[...Array(13)].map((_, i) => (
+                    <option key={i} value={`division_${i+1}`}>บก. {i+1}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-full lg:w-2/3">
+                <label className={labelClass}>ชื่อ บก.</label>
+                <AutocompleteInput name="division_name" value={formData.division_name || ""} options={divisionOptions} onChange={handleInputChange} className={inputClass} placeholder="ไม่ระบุ" />
+              </div>
+            </div>
+
+            <div><label className={labelClass}>สน./สภ.</label><AutocompleteInput name="station" value={formData.station || ""} options={stationOptions} onChange={handleInputChange} className={inputClass} /></div>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <div className="col-span-1 md:col-span-2"><label className={labelClass}>ชื่อพนักงานสอบสวน/ตำรวจ (ไม่ต้องมียศ)</label><input type="text" name="officer_name" value={formData.officer_name} onChange={handleInputChange} className={inputClass} /></div>
+                      </div>
 
           <h3 className="text-xl font-bold text-(--header) mb-4 mt-8">ข้อมูลคดีและการดำเนินการ</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             <div><label className={labelClass}>วันที่รับแจ้งความ</label><input type="date" name="reported_date" value={formData.reported_date ? formData.reported_date.substring(0, 10) : ""} onChange={handleInputChange} className={inputClass} /></div>
             <div><label className={labelClass}>ช่องทางการรับแจ้ง</label><input type="text" name="receiving_channel" value={formData.receiving_channel || ""} onChange={handleInputChange} className={inputClass} /></div>
-            <div><label className={labelClass}>พนักงานสอบสวนผู้รับผิดชอบ</label><input type="text" name="investigating_officer" value={formData.investigating_officer || ""} onChange={handleInputChange} className={inputClass} /></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
             <div><label className={labelClass}>เลขคดี</label><input type="text" name="case_number" value={formData.case_number || ""} onChange={handleInputChange} className={inputClass} /></div>

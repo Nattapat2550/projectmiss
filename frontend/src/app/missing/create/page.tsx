@@ -7,6 +7,7 @@ import { ChevronLeft, Save, X, FileSpreadsheet } from "lucide-react";
 import Swal from 'sweetalert2';
 import SingleImageField from "@/components/form/single-image-field";
 import { useAddressOptions } from "@/hooks/useAddressOptions";
+import { useAgenciesOptions } from "@/hooks/useAgenciesOptions";
 import AutocompleteInput from "@/components/ui/AutocompleteInput";
 import { ALL_NATIONALITIES } from "@/constants/nationalities";
 
@@ -14,6 +15,7 @@ export default function CreateMissingPerson() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeDivisionType, setActiveDivisionType] = useState("division_1");
 
   const [formData, setFormData] = useState({
     missing_first_name_th: "",
@@ -47,7 +49,6 @@ export default function CreateMissingPerson() {
     informant_phone: "",
     informant_email: "",
     relationship: "",
-    police_station: "", 
     human_trafficking_indicators: false, 
     notes: "", 
     entry_channel: "",
@@ -56,8 +57,12 @@ export default function CreateMissingPerson() {
     entry_date: "",
     reported_date: "",
     receiving_channel: "",
-    investigating_officer: "",
-    case_number: "",
+    command_center: "",
+    division_type: "division_1",
+    division_name: "",
+    station: "",
+    officer_name: "",
+        case_number: "",
     pjv_number: "",
     pjv_file_url: "",
     operation_result: false,
@@ -70,6 +75,7 @@ export default function CreateMissingPerson() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
+  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_type, formData.division_name, formData.station);
 
   const handleSelectDetDistrict = (opt: any) => {
     const { district, province } = opt.extra;
@@ -90,6 +96,12 @@ export default function CreateMissingPerson() {
       ...prev, 
       [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value 
     }));
+  };
+
+  const handleActiveDivisionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value;
+    setFormData((prev) => ({ ...prev, division_type: newType, division_name: "" }));
+    setActiveDivisionType(newType);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,16 +275,35 @@ export default function CreateMissingPerson() {
           <div><label className={labelClass}>อีเมล (ผู้แจ้ง)</label><input type="email" name="informant_email" value={formData.informant_email} onChange={handleInputChange} className={inputClass} /></div>
         </div>
         
-        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">สถานีตำรวจ</h3>
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-5">
-          <div><label className={labelClass}>สถานีตำรวจที่รับแจ้ง</label><input type="text" name="police_station" value={formData.police_station} onChange={handleInputChange} className={inputClass} /></div>
+        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">สถานีตำรวจที่รับแจ้ง</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center} options={commandCenterOptions} onChange={handleInputChange} className={inputClass} /></div>
+          
+          <div className="flex flex-col lg:flex-row gap-2 col-span-1">
+            <div className="w-full lg:w-1/3">
+              <label className={labelClass}>เลือก บก.</label>
+              <select value={formData.division_type} onChange={handleActiveDivisionTypeChange} className={inputClass}>
+                {[...Array(13)].map((_, i) => (
+                  <option key={i} value={`division_${i+1}`}>บก. {i+1}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full lg:w-2/3">
+              <label className={labelClass}>ชื่อ บก.</label>
+              <AutocompleteInput name="division_name" value={formData.division_name} options={divisionOptions} onChange={handleInputChange} className={inputClass} placeholder="ไม่ระบุ" />
+            </div>
+          </div>
+
+          <div><label className={labelClass}>สน./สภ.</label><AutocompleteInput name="station" value={formData.station} options={stationOptions} onChange={handleInputChange} className={inputClass} /></div>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          <div className="col-span-1 md:col-span-2"><label className={labelClass}>ชื่อพนักงานสอบสวน/ตำรวจ (ไม่ต้องมียศ)</label><input type="text" name="officer_name" value={formData.officer_name} onChange={handleInputChange} className={inputClass} /></div>
+                  </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลคดีและการดำเนินการ</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
           <div><label className={labelClass}>วันที่รับแจ้งความ</label><input type="date" name="reported_date" value={formData.reported_date} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>ช่องทางการรับแจ้ง</label><input type="text" name="receiving_channel" value={formData.receiving_channel} onChange={handleInputChange} className={inputClass} /></div>
-          <div><label className={labelClass}>พนักงานสอบสวนผู้รับผิดชอบ</label><input type="text" name="investigating_officer" value={formData.investigating_officer} onChange={handleInputChange} className={inputClass} /></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           <div><label className={labelClass}>เลขคดี</label><input type="text" name="case_number" value={formData.case_number} onChange={handleInputChange} className={inputClass} /></div>

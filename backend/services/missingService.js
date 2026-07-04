@@ -29,7 +29,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
                 OR c.detected_location_sub_district ILIKE $${paramIndex}
                 OR c.detected_location_district ILIKE $${paramIndex}
                 OR c.detected_location_province ILIKE $${paramIndex}
-                OR c.police_station ILIKE $${paramIndex}
+                OR a.station ILIKE $${paramIndex}
                 OR c.incident_summary ILIKE $${paramIndex}
                 OR c.case_number ILIKE $${paramIndex}
                 OR i.first_name_th ILIKE $${paramIndex}
@@ -71,21 +71,20 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
             EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) as age, mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.missing_date, c.missing_time, c.detected_location_details,
             c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
-            c.photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result, c.police_station,
+            c.photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result,
             c.incident_summary, c.human_trafficking_indicators, c.notes,
-            c.pjv_number, c.pjv_file_url, c.victim_classification, c.human_trafficking_type, c.investigating_officer,
+            c.pjv_number, c.pjv_file_url, c.victim_classification, c.human_trafficking_type, c.investigating_id,
             c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date, c.action_taken, c.relationship, c.receiving_channel,
             i.first_name_th as informant_first_name_th, i.middle_name_th as informant_middle_name_th, i.last_name_th as informant_last_name_th,
             i.first_name_en as informant_first_name_en, i.middle_name_en as informant_middle_name_en, i.last_name_en as informant_last_name_en,
             i.date_of_birth as informant_date_of_birth, i.gender as informant_gender, i.nationality as informant_nationality,
             i.informant_id_card_passport as informant_id_card_passport, i.informant_contact_channel as informant_contact_channel,
             i.informant_phone as informant_phone, i.informant_email as informant_email,
-            a.command_center, a.division_1, a.division_2, a.division_3, a.division_4, a.division_5, a.division_6, a.division_7,
-            a.division_8, a.division_9, a.division_10, a.division_11, a.division_12, a.division_13, a.station, a.receiving_officer
+            a.division_type, a.division_name, a.station, a.officer_name
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
-        LEFT JOIN agencies a ON c.agency_id = a.agency_id
+        LEFT JOIN agencies a ON c.investigating_id = a.agency_id
         ${whereClause}
         ${orderClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -128,8 +127,8 @@ const createMissingPersonRecord = async (data, file) => {
             age, date_of_birth, gender, nationality, passport_number, missing_id_card_passport, missing_date, missing_time,
             detected_location_details, detected_location_sub_district, detected_location_district, detected_location_province,
             incident_summary, informant_first_name_th, informant_last_name_th, informant_age, informant_date_of_birth, informant_gender,
-            informant_nationality, police_station, human_trafficking_indicators, notes,
-            entry_channel, entry_checkpoint_province, airline, entry_date, investigating_officer,
+            informant_nationality, station, human_trafficking_indicators, notes,
+            entry_channel, entry_checkpoint_province, airline, entry_date, investigating_id,
             reported_date, receiving_channel, case_number, pjv_number, pjv_file_url, operation_result,
             found_date, victim_classification, human_trafficking_type, action_taken
         } = data;
@@ -174,6 +173,40 @@ const createMissingPersonRecord = async (data, file) => {
             informant_id = informantRes.rows[0].informant_id;
         }
 
+        let agency_id = null;
+        if (data.command_center || data.station || data.officer_name) {
+            let agencyCheckQuery = `
+                SELECT agency_id FROM agencies 
+                WHERE COALESCE(command_center, '') = COALESCE($1, '') 
+                  AND COALESCE(station, '') = COALESCE($2, '') 
+                  AND COALESCE(officer_name, '') = COALESCE($3, '')
+                LIMIT 1
+            `;
+            let agencyCheckRes = await client.query(agencyCheckQuery, [
+                data.command_center || '',
+                data.station || '',
+                data.officer_name || ''
+            ]);
+
+            if (agencyCheckRes.rows.length > 0) {
+                agency_id = agencyCheckRes.rows[0].agency_id;
+            } else {
+                let agencyQuery = `
+                    INSERT INTO agencies (
+                        command_center, station, officer_name,
+                        division_type, division_name
+                    ) VALUES ($1, $2, $3, $4, $5) 
+                    RETURNING agency_id
+                `;
+                let agencyRes = await client.query(agencyQuery, [
+                    data.command_center, data.station, data.officer_name,
+                    data.division_type || 'division_1',
+                    data.division_name || 'ไม่ระบุ'
+                ]);
+                agency_id = agencyRes.rows[0].agency_id;
+            }
+        }
+
         let drivePhotoUrl = null;
         if (file && file.buffer) {
             try {
@@ -201,9 +234,9 @@ const createMissingPersonRecord = async (data, file) => {
                 missing_person_id, informant_id, 
                 missing_date, missing_time, detected_location_details,
                 detected_location_sub_district, detected_location_district, detected_location_province,
-                incident_summary, police_station, human_trafficking_indicators,
+                incident_summary, human_trafficking_indicators,
                 notes, photo_url, entry_channel, entry_checkpoint_province, airline, entry_date,
-                investigating_officer, reported_date, receiving_channel, case_number, pjv_number,
+                investigating_id, reported_date, receiving_channel, case_number, pjv_number,
                 pjv_file_url, operation_result, found_date, victim_classification,
                 human_trafficking_type, action_taken
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
@@ -219,7 +252,6 @@ const createMissingPersonRecord = async (data, file) => {
             detected_location_district || null,
             detected_location_province || null,
             incident_summary || null,
-            validateLen(police_station, 255),
             human_trafficking_indicators === "true" || human_trafficking_indicators === true,
             notes || null,
             drivePhotoUrl,
@@ -227,7 +259,7 @@ const createMissingPersonRecord = async (data, file) => {
             validateLen(entry_checkpoint_province, 255),
             validateLen(airline, 100),
             parseEntryDate,
-            validateLen(investigating_officer, 255),
+            agency_id,
             parseReportedDate,
             validateLen(receiving_channel, 255),
             validateLen(case_number, 100),
@@ -258,20 +290,18 @@ const fetchMissingPersonById = async (id) => {
             mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.relationship, c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date,
             c.detected_location_details, c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
-            c.missing_date, c.missing_time, c.photo_url, c.investigating_officer, c.reported_date, c.receiving_channel,
+            c.missing_date, c.missing_time, c.photo_url, c.investigating_id, c.reported_date, c.receiving_channel,
             c.incident_summary, c.case_number, c.pjv_number, c.pjv_file_url, c.human_trafficking_indicators,
-            c.victim_classification, c.human_trafficking_type, c.action_taken, c.operation_result, c.police_station,
+            c.victim_classification, c.human_trafficking_type, c.action_taken, c.operation_result,
             c.found_date, c.notes,
             i.informant_id, i.first_name_th AS informant_first_name_th, i.last_name_th AS informant_last_name_th,
             i.date_of_birth AS informant_date_of_birth, i.gender AS informant_gender, i.nationality AS informant_nationality,
             i.informant_id_card_passport, i.informant_contact_channel, i.informant_phone, i.informant_email,
-            a.agency_id, a.command_center, a.station, a.receiving_officer, a.division_1, a.division_2,
-            a.division_3, a.division_4, a.division_5, a.division_6, a.division_7, a.division_8,
-            a.division_9, a.division_10, a.division_11, a.division_12, a.division_13
+            a.agency_id, a.command_center, a.station, a.officer_name, a.division_type, a.division_name
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
-        LEFT JOIN agencies a ON c.agency_id = a.agency_id
+        LEFT JOIN agencies a ON c.investigating_id = a.agency_id
         WHERE mp.missing_person_id = $1
     `;
     const result = await pool.query(query, [id]);
@@ -287,7 +317,7 @@ const updateMissingPersonRecord = async (id, data, file) => {
             detected_location_sub_district, detected_location_district, detected_location_province, incident_summary,
             informant_first_name_th, informant_middle_name_th, informant_last_name_th, informant_first_name_en, informant_middle_name_en, informant_last_name_en,
             informant_age, informant_date_of_birth, informant_gender, informant_nationality, informant_id_card_passport, informant_phone, informant_email, relationship,
-            police_station, human_trafficking_indicators, notes, case_number, pjv_number, investigating_officer, operation_result, found_date, reported_date,
+            station, human_trafficking_indicators, notes, case_number, pjv_number, investigating_id, operation_result, found_date, reported_date,
             entry_channel, entry_checkpoint_province, airline, entry_date, receiving_channel, pjv_file_url, victim_classification, human_trafficking_type, action_taken
         } = data;
 
@@ -307,6 +337,40 @@ const updateMissingPersonRecord = async (id, data, file) => {
             missingDob, gender, nationality, passport_number, missing_id_card_passport,
             id
         ]);
+
+        let agency_id = investigating_id;
+        if (data.command_center || data.station || data.officer_name) {
+            let agencyCheckQuery = `
+                SELECT agency_id FROM agencies 
+                WHERE COALESCE(command_center, '') = COALESCE($1, '') 
+                  AND COALESCE(station, '') = COALESCE($2, '') 
+                  AND COALESCE(officer_name, '') = COALESCE($3, '')
+                LIMIT 1
+            `;
+            let agencyCheckRes = await client.query(agencyCheckQuery, [
+                data.command_center || '',
+                data.station || '',
+                data.officer_name || ''
+            ]);
+
+            if (agencyCheckRes.rows.length > 0) {
+                agency_id = agencyCheckRes.rows[0].agency_id;
+            } else {
+                let agencyQuery = `
+                    INSERT INTO agencies (
+                        command_center, station, officer_name,
+                        division_type, division_name
+                    ) VALUES ($1, $2, $3, $4, $5) 
+                    RETURNING agency_id
+                `;
+                let agencyRes = await client.query(agencyQuery, [
+                    data.command_center, data.station, data.officer_name,
+                    data.division_type || 'division_1',
+                    data.division_name || 'ไม่ระบุ'
+                ]);
+                agency_id = agencyRes.rows[0].agency_id;
+            }
+        }
 
         let drivePhotoUrl = null;
         if (file && file.buffer) {
@@ -338,18 +402,18 @@ const updateMissingPersonRecord = async (id, data, file) => {
             UPDATE cases
             SET missing_date = $1, missing_time = $2, detected_location_details = $3,
                 detected_location_sub_district = $4, detected_location_district = $5, detected_location_province = $6,
-                incident_summary = $7, police_station = $8, human_trafficking_indicators = $9, notes = $10,
-                case_number = $11, pjv_number = $12, investigating_officer = $13, operation_result = $14,
-                found_date = $15, reported_date = $16, relationship = $17,
-                entry_channel = $18, entry_checkpoint_province = $19, airline = $20, entry_date = $21,
-                receiving_channel = $22, pjv_file_url = $23, victim_classification = $24,
-                human_trafficking_type = $25, action_taken = $26
+                incident_summary = $7, human_trafficking_indicators = $8, notes = $9,
+                case_number = $10, pjv_number = $11, investigating_id = $12, operation_result = $13,
+                found_date = $14, reported_date = $15, relationship = $16,
+                entry_channel = $17, entry_checkpoint_province = $18, airline = $19, entry_date = $20,
+                receiving_channel = $21, pjv_file_url = $22, victim_classification = $23,
+                human_trafficking_type = $24, action_taken = $25
         `;
         let caseParams = [
             parseMissingDate, missing_time, detected_location_details,
             detected_location_sub_district, detected_location_district, detected_location_province,
-            incident_summary, police_station, human_trafficking_indicators, notes,
-            case_number, pjv_number, investigating_officer, operation_result,
+            incident_summary, human_trafficking_indicators, notes,
+            case_number, pjv_number, agency_id, operation_result,
             parseFoundDate, parseReportedDate, relationship,
             entry_channel, entry_checkpoint_province, airline, parseEntryDate,
             receiving_channel, pjv_file_url, victim_classification,
@@ -357,10 +421,10 @@ const updateMissingPersonRecord = async (id, data, file) => {
         ];
 
         if (drivePhotoUrl) {
-            caseUpdateQuery += `, photo_url = $27 WHERE case_id = $28`;
+            caseUpdateQuery += `, photo_url = $26 WHERE case_id = $27`;
             caseParams.push(drivePhotoUrl, case_id);
         } else {
-            caseUpdateQuery += ` WHERE case_id = $27`;
+            caseUpdateQuery += ` WHERE case_id = $26`;
             caseParams.push(case_id);
         }
 

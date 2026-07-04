@@ -92,7 +92,7 @@ exports.getDashboardStats = async (req, res) => {
       if (province === "ไม่ระบุ") {
         conditions.push(`(c.detected_location_province IS NULL OR TRIM(c.detected_location_province) = '' OR c.detected_location_province = 'ไม่ระบุ')`);
       } else {
-        conditions.push(`c.detected_location_province = ${paramIndex}`);
+        conditions.push(`c.detected_location_province = $${paramIndex}`);
         queryParams.push(province);
         paramIndex++;
       }
@@ -163,7 +163,7 @@ exports.getDashboardStats = async (req, res) => {
         mp.missing_id_card_passport,
         mp.passport_number,
         c.case_id,
-        c.police_station,
+        a.station as police_station,
         c.incident_summary,
         c.human_trafficking_indicators,
         c.detected_location_province as address,
@@ -173,6 +173,7 @@ exports.getDashboardStats = async (req, res) => {
         c.operation_result as result
       FROM missing_persons mp 
       LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
+      LEFT JOIN agencies a ON c.investigating_id = a.agency_id
       ${whereClause} 
       ${orderClause} 
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

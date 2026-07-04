@@ -140,12 +140,12 @@ export default function RightPanel({ data, note, setNote, onEditClick }: RightPa
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
             <span className="font-bold text-foreground dark:text-slate-300">สถานีตำรวจ</span>
-            <span className="font-semibold">{data.police_station || "-"}</span>
+            <span className="font-semibold">{data.station || "-"}</span>
           </div>
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
             <span className="font-bold text-foreground dark:text-slate-300">พนักงานสอบสวน</span>
-            <span className="font-semibold">{data.investigating_officer || "-"}</span>
+            <span className="font-semibold">{data.officer_name || "-"}</span>
           </div>
           
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">

@@ -11,21 +11,10 @@ CREATE TABLE users (
 CREATE TABLE agencies (
     agency_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     command_center VARCHAR(255),           -- กองบัญชาการที่รับแจ้ง / กรุณาเลือก กองบัญชาการ (บช.)
-    division_1 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.)
-    division_2 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 2
-    division_3 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 3
-    division_4 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 4
-    division_5 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 5
-    division_6 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 6
-    division_7 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 7
-    division_8 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 8
-    division_9 VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 9
-    division_10 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 10
-    division_11 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 11
-    division_12 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 12
-    division_13 VARCHAR(255),              -- กรุณาเลือก กองบังคับการ (บก.) 13
+    division_type VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 1-13
+    division_name VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.)
     station VARCHAR(255),                  -- สังกัด สน./สภ.
-    receiving_officer VARCHAR(255),        -- เจ้าหน้าที่ตำรวจผู้รับแจ้ง
+    officer_name VARCHAR(255),             -- ชื่อพนักงานสอบสวน/ตำรวจ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -89,7 +78,7 @@ CREATE TABLE cases (
     photo_url TEXT,                        -- รูปภาพ (เก็บเป็น URL Link ไปยัง Object Storage)
     
     -- ข้อมูลที่ย้ายมาจาก agencies
-    investigating_officer VARCHAR(255),    -- พนักงานสอบสวนผู้รับผิดชอบ
+    investigating_id UUID REFERENCES agencies(agency_id) ON DELETE SET NULL,    -- พนักงานสอบสวนผู้รับผิดชอบ
     
     -- ข้อมูลคดีเดิม
     reported_date DATE,                    -- วัน/เดือน/ปี ที่รับแจ้ง / วันที่รับแจ้งวาม
@@ -103,7 +92,6 @@ CREATE TABLE cases (
     human_trafficking_type VARCHAR(255),   -- ประเภทของการค้ามนุษย์
     action_taken TEXT,                     -- การดำเนินการ
     operation_result BOOLEAN,                 -- ผลการปฏิบัติ
-    police_station VARCHAR(255),           -- สถานีตำรวจ (สน./สภ.) / สถานีตำรวจที่รับแจ้ง
     found_date DATE,                       -- วันที่พบตัว
     notes TEXT,                            -- หมายเหตุ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
