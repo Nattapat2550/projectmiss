@@ -10,7 +10,7 @@ export default function BarChart({ data, title }: { data: ChartItem[]; title: st
       <p className="text-sm font-semibold shrink-0 text-(--header)">{title}</p>
       
       {/* ส่วนของกราฟแท่ง (Stacked Bar) รวมอยู่ในแท่งเดียว */}
-      <div className="w-full flex h-5 rounded-full overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
+      <div className="w-full flex h-5 rounded-full overflow-hidden shadow-sm bg-zinc-900/5 dark:bg-zinc-50/5">
         {data.map((d, i) => {
           const pct = (d.value / total) * 100;
           return (

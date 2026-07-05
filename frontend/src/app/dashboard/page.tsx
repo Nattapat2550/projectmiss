@@ -199,7 +199,7 @@ function DashboardContent() {
 
           {/* Popup Modal สำหรับ Checkboxes ตั้งค่า */}
           {showSettings && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-(--container) border border-(--wrapper) rounded-[0.2rem] p-6 w-full max-w-md shadow-2xl relative">
                 <h4 className="text-lg font-bold text-(--header) mb-4">⚙️ ตั้งค่าความน่าสนใจของกราฟ</h4>
                 <p className="text-sm opacity-80 text-(--header) mb-4">

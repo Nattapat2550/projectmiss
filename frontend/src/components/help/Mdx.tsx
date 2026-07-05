@@ -59,9 +59,10 @@ export const MdxComponents = {
 
   // 3. Custom Callout Card for warnings/tips
   Callout: ({ children, type = 'info' }: { children: React.ReactNode; type?: 'info' | 'warning' }) => {
-    const bgColors = type === 'warning' ? 'bg-amber-50 border-amber-500/30 text-amber-900' : 'bg-blue-50 border-blue-500/30 text-blue-900';
+    // Note: Adjusted the border colors to be solid lighter variants rather than translucent dark variants
+    const bgColors = type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-blue-50 border-blue-200 text-blue-900';
     return (
-      <div className={`p-4 my-4 border-l-4 rounded-r-md ${bgColors} text-base`}>
+      <div className={`p-4 my-4 border rounded-lg ${bgColors} text-base shadow-sm`}>
         {children}
       </div>
     );
