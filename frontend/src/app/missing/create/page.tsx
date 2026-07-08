@@ -58,7 +58,6 @@ export default function CreateMissingPerson() {
     reported_date: "",
     receiving_channel: "",
     command_center: "",
-    division_type: "division_1",
     division_name: "",
     station: "",
     officer_name: "",
@@ -73,9 +72,11 @@ export default function CreateMissingPerson() {
   });
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedPassportImage, setSelectedPassportImage] = useState<File | null>(null);
+  const [selectedPjvFile, setSelectedPjvFile] = useState<File | null>(null);
 
   const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
-  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_type, formData.division_name, formData.station);
+  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_name, formData.station);
 
   const handleSelectDetDistrict = (opt: any) => {
     const { district, province } = opt.extra;
@@ -98,10 +99,15 @@ export default function CreateMissingPerson() {
     }));
   };
 
-  const handleActiveDivisionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newType = e.target.value;
-    setFormData((prev) => ({ ...prev, division_type: newType, division_name: "" }));
-    setActiveDivisionType(newType);
+  const handleCommandCenterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange(e);
+    handleInputChange({ target: { name: "division_name", value: "", type: "text" } } as any);
+    handleInputChange({ target: { name: "station", value: "", type: "text" } } as any);
+  };
+
+  const handleDivisionNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange(e);
+    handleInputChange({ target: { name: "station", value: "", type: "text" } } as any);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,6 +119,28 @@ export default function CreateMissingPerson() {
 
   const handleImageRemove = () => {
     setSelectedImage(null); 
+  };
+
+  const handlePassportImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedPassportImage(file); 
+    }
+  };
+
+  const handlePassportImageRemove = () => {
+    setSelectedPassportImage(null); 
+  };
+
+  const handlePjvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedPjvFile(file); 
+    }
+  };
+
+  const handlePjvFileRemove = () => {
+    setSelectedPjvFile(null); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,6 +161,12 @@ export default function CreateMissingPerson() {
 
       if (selectedImage) {
         submitData.append("photo", selectedImage);
+      }
+      if (selectedPassportImage) {
+        submitData.append("passport_photo", selectedPassportImage);
+      }
+      if (selectedPjvFile) {
+        submitData.append("pjv_file", selectedPjvFile);
       }
 
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
@@ -186,9 +220,16 @@ export default function CreateMissingPerson() {
         
         {error && <div className="mb-6 rounded-md border border-red-500 bg-red-100 dark:bg-red-900/30 p-4 text-sm text-red-600 dark:text-red-400 font-medium">{error}</div>}
 
-        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3">รูปภาพบุคคลสูญหาย</h3>
-        <div className="mb-6 flex flex-col items-start gap-4">
-          <SingleImageField file={selectedImage} previewUrl="/return.png" onChange={handleImageChange} onRemove={handleImageRemove}/>
+        <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3">รูปภาพบุคคลสูญหาย และ หนังสือเดินทาง</h3>
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="flex flex-col items-start gap-4">
+            <span className="text-sm font-bold text-(--header) opacity-70">รูปถ่ายบุคคลสูญหาย</span>
+            <SingleImageField file={selectedImage} previewUrl="/return.png" onChange={handleImageChange} onRemove={handleImageRemove}/>
+          </div>
+          <div className="flex flex-col items-start gap-4">
+            <span className="text-sm font-bold text-(--header) opacity-70">รูปถ่ายหนังสือเดินทาง (ถ้ามี)</span>
+            <SingleImageField file={selectedPassportImage} previewUrl="/return.png" onChange={handlePassportImageChange} onRemove={handlePassportImageRemove}/>
+          </div>
         </div>
 
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">ข้อมูลบุคคลสูญหาย</h3>
@@ -277,20 +318,12 @@ export default function CreateMissingPerson() {
         
         <h3 className="text-xl font-bold text-(--header) mb-6 border-b border-(--wrapper) pb-3 mt-8">สถานีตำรวจที่รับแจ้ง</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-          <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center} options={commandCenterOptions} onChange={handleInputChange} className={inputClass} /></div>
+          <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center} options={commandCenterOptions} onChange={handleCommandCenterChange} className={inputClass} /></div>
           
           <div className="flex flex-col lg:flex-row gap-2 col-span-1">
-            <div className="w-full lg:w-1/3">
-              <label className={labelClass}>เลือก บก.</label>
-              <select value={formData.division_type} onChange={handleActiveDivisionTypeChange} className={inputClass}>
-                {[...Array(13)].map((_, i) => (
-                  <option key={i} value={`division_${i+1}`}>บก. {i+1}</option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full lg:w-2/3">
+            <div className="w-full">
               <label className={labelClass}>ชื่อ บก.</label>
-              <AutocompleteInput name="division_name" value={formData.division_name} options={divisionOptions} onChange={handleInputChange} className={inputClass} placeholder="ไม่ระบุ" />
+              <AutocompleteInput name="division_name" value={formData.division_name} options={divisionOptions} onChange={handleDivisionNameChange} className={inputClass} placeholder="ไม่ระบุ" />
             </div>
           </div>
 
@@ -308,7 +341,33 @@ export default function CreateMissingPerson() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           <div><label className={labelClass}>เลขคดี</label><input type="text" name="case_number" value={formData.case_number} onChange={handleInputChange} className={inputClass} /></div>
           <div><label className={labelClass}>เลข ปจว.</label><input type="text" name="pjv_number" value={formData.pjv_number} onChange={handleInputChange} className={inputClass} /></div>
-          <div><label className={labelClass}>ลิงก์ไฟล์ ปจว. (ถ้ามี)</label><input type="text" name="pjv_file_url" value={formData.pjv_file_url} onChange={handleInputChange} className={inputClass} /></div>
+          <div className="col-span-1 md:col-span-2">
+            <label className={labelClass}>ไฟล์ ปจว. (PDF หรือรูปภาพ)</label>
+            <div className="flex items-center gap-3">
+              {selectedPjvFile ? (
+                <div className="flex items-center gap-2 text-sm px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+                  <span className="truncate max-w-[200px]">{selectedPjvFile.name}</span>
+                  <button type="button" onClick={handlePjvFileRemove} className="text-red-500 hover:text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-md cursor-pointer hover:opacity-90 w-fit text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> อัปโหลดไฟล์ ปจว.
+                  <input type="file" accept=".pdf,image/*" onChange={handlePjvFileChange} className="hidden" />
+                </label>
+              )}
+              {formData.pjv_file_url && (
+                <a href={formData.pjv_file_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm hover:underline flex items-center gap-1">
+                  ดูไฟล์เดิม
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              )}
+            </div>
+            {!selectedPjvFile && !formData.pjv_file_url && (
+              <input type="text" name="pjv_file_url" value={formData.pjv_file_url} onChange={handleInputChange} className={`${inputClass} mt-2`} placeholder="หรือวางลิงก์ไฟล์ ปจว. ที่นี่" />
+            )}
+          </div>
         </div>
 
         <div className="mb-5 flex items-center gap-2 bg-background p-4 rounded-xl border border-(--wrapper)">

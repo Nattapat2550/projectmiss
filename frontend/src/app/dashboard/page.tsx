@@ -26,7 +26,7 @@ function DashboardContent() {
     if (cookieVal) {
       setVisibleCharts(cookieVal.split(",").filter(Boolean));
     } else {
-      setVisibleCharts(["nationality", "gender", "province", "reportedDate", "ageGroup", "trafficking", "status"]);
+      setVisibleCharts(["nationality", "gender", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"]);
     }
   }, []);
 
@@ -99,6 +99,28 @@ function DashboardContent() {
           </div>
 
           <div className="flex flex-col gap-2 mt-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">กองบัญชาการ (บช.)</label>
+            <select value={states.filterCommandCenter} onChange={(e) => { actions.handleFilterChange(actions.setFilterCommandCenter, e.target.value); actions.setFilterDivisionName("ทั้งหมด"); }} className={inputClass}>
+              <option value="ทั้งหมด">ทั้งหมด</option>
+              {derived.commandCenterOptions.map((opt: any) => {
+                const val = typeof opt === "string" ? opt : opt.value;
+                return <option key={val} value={val}>{typeof opt === "string" ? opt : opt.label}</option>;
+              })}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">กองบังคับการ (บก.)</label>
+            <select value={states.filterDivisionName} onChange={(e) => actions.handleFilterChange(actions.setFilterDivisionName, e.target.value)} className={inputClass}>
+              <option value="ทั้งหมด">ทั้งหมด</option>
+              {derived.divisionOptions.map((opt: any) => {
+                const val = typeof opt === "string" ? opt : opt.value;
+                return <option key={val} value={val}>{typeof opt === "string" ? opt : opt.label}</option>;
+              })}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-2">
              <label className="text-sm font-bold text-(--header) opacity-70">รับแจ้งตั้งแต่วันที่</label>
              <input type="date" value={states.startDate} onChange={(e) => actions.handleFilterChange(actions.setStartDate, e.target.value)} className={inputClass} />
           </div>
@@ -156,6 +178,8 @@ function DashboardContent() {
                     {(!visibleCharts.length || visibleCharts.includes("gender")) && derived.genderChart.length > 0 && <BarChart data={derived.genderChart} title="เพศ" />}
 
                     {(!visibleCharts.length || visibleCharts.includes("province")) && derived.provinceChart && derived.provinceChart.length > 0 && <BarChart data={derived.provinceChart} title="จังหวัดที่สูญหาย (Top 6)" />}
+                    {(!visibleCharts.length || visibleCharts.includes("commandCenter")) && derived.commandCenterChart && derived.commandCenterChart.length > 0 && <BarChart data={derived.commandCenterChart} title="กองบัญชาการ (Top 6)" />}
+                    {(!visibleCharts.length || visibleCharts.includes("divisionName")) && derived.divisionNameChart && derived.divisionNameChart.length > 0 && <BarChart data={derived.divisionNameChart} title="กองบังคับการ (Top 6)" />}
                     {(!visibleCharts.length || visibleCharts.includes("reportedDate")) && derived.reportedDateChart && derived.reportedDateChart.length > 0 && <LineChart data={derived.reportedDateChart} title="แนวโน้มวันที่รับแจ้งความ (รายเดือน)" />}
                     {(!visibleCharts.length || visibleCharts.includes("ageGroup")) && derived.ageChart && derived.ageChart.length > 0 && <BarChart data={derived.ageChart} title="ช่วงอายุคนหาย" />}
                     {(!visibleCharts.length || visibleCharts.includes("trafficking")) && derived.traffickingChart && derived.traffickingChart.length > 0 && <BarChart data={derived.traffickingChart} title="ข้อบ่งชี้การค้ามนุษย์" />}
@@ -231,6 +255,14 @@ function DashboardContent() {
                     จังหวัดที่สูญหาย
                   </label>
                   <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("commandCenter")} onChange={() => toggleChart("commandCenter")} className="w-4 h-4 accent-(--blueText)" />
+                    กองบัญชาการ (Top 6)
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("divisionName")} onChange={() => toggleChart("divisionName")} className="w-4 h-4 accent-(--blueText)" />
+                    กองบังคับการ (Top 6)
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
                     <input type="checkbox" checked={visibleCharts.includes("reportedDate")} onChange={() => toggleChart("reportedDate")} className="w-4 h-4 accent-(--blueText)" />
                     แนวโน้มวันที่รับแจ้งความ
                   </label>
@@ -250,7 +282,7 @@ function DashboardContent() {
 
                 <div className="flex justify-end gap-2 mt-2">
                   <button 
-                    onClick={() => saveVisibleCharts(["nationality", "gender", "province", "reportedDate", "ageGroup", "trafficking", "status"])} 
+                    onClick={() => saveVisibleCharts(["nationality", "gender", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"])} 
                     className="px-3.5 py-1.5 bg-zinc-200 dark:bg-zinc-800 text-sm font-bold text-(--header) hover:opacity-80 transition rounded cursor-pointer select-none"
                   >
                     แสดงผลทั้งหมด

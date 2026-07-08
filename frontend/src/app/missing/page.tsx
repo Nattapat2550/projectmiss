@@ -99,7 +99,7 @@ function MissingPageContent() {
   const [isExportMode, setIsExportMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
-  
+
   const selectedIds = selectedRows.map(r => r.id);
 
   useEffect(() => {
@@ -132,7 +132,7 @@ function MissingPageContent() {
           params.append("sortOrder", sortDirection);
         }
 
-        if (debouncedSearch.trim()) {
+        if (debouncedSearch) {
           params.append("search", debouncedSearch.trim());
         }
 
@@ -166,8 +166,6 @@ function MissingPageContent() {
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    setIsExportMode(false);
-    setSelectedRows([]);
   };
 
   const handleCancelExport = () => {
@@ -322,13 +320,13 @@ function MissingPageContent() {
             </svg>
             <input
               type="text"
-              placeholder="ค้นหาชื่อ, เลขพาสปอร์ต, บัตรประชาชน... (ใช้ช่องว่างแยกคำค้นหา)"
+              placeholder="ค้นหาชื่อ, เลขคดี, เลข ปจว, สน./สภ., บช., บก. ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-zinc-400 placeholder:text-sm"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="hover:opacity-70 transition ml-2 text-zinc-400">
+              <button onClick={() => setSearchTerm("")} className="hover:opacity-70 transition ml-2 text-zinc-400 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

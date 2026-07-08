@@ -1,14 +1,27 @@
 import pool from "../config/db";
 import {  uploadWithRetry, validateLen, parseDateForDB  } from "../utils/uploadHelpers";
 
-const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) => {
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 50;
-    const offset = (pageNum - 1) * limitNum;
+export const fetchMissingPersons = async (params) => {
+    const { page = 1, limit = 50, sortBy, sortOrder = "desc", search, command_center, division_name } = params;
+    
+    const limitNum = parseInt(limit, 10);
+    const offset = (parseInt(page, 10) - 1) * limitNum;
 
     let conditions = [];
     let queryParams = [];
     let paramIndex = 1;
+
+    if (command_center && command_center.trim() && command_center.trim() !== "ทั้งหมด") {
+        conditions.push(`a.command_center = $${paramIndex}`);
+        queryParams.push(command_center.trim());
+        paramIndex++;
+    }
+
+    if (division_name && division_name.trim() && division_name.trim() !== "ทั้งหมด") {
+        conditions.push(`a.division_name = $${paramIndex}`);
+        queryParams.push(division_name.trim());
+        paramIndex++;
+    }
 
     if (search && search.trim()) {
         const searchTerms = search.trim().split(/\s+/);
@@ -29,6 +42,8 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
                 OR c.detected_location_sub_district ILIKE $${paramIndex}
                 OR c.detected_location_district ILIKE $${paramIndex}
                 OR c.detected_location_province ILIKE $${paramIndex}
+                OR a.command_center ILIKE $${paramIndex}
+                OR a.division_name ILIKE $${paramIndex}
                 OR a.station ILIKE $${paramIndex}
                 OR c.incident_summary ILIKE $${paramIndex}
                 OR c.case_number ILIKE $${paramIndex}
@@ -71,7 +86,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
             EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) as age, mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.missing_date, c.missing_time, c.detected_location_details,
             c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
-            c.photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result,
+            c.photo_url, c.passport_photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result,
             c.incident_summary, c.human_trafficking_indicators, c.notes,
             c.pjv_number, c.pjv_file_url, c.victim_classification, c.human_trafficking_type, c.investigating_id,
             c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date, c.action_taken, c.relationship, c.receiving_channel,
@@ -80,7 +95,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
             i.date_of_birth as informant_date_of_birth, i.gender as informant_gender, i.nationality as informant_nationality,
             i.informant_id_card_passport as informant_id_card_passport, i.informant_contact_channel as informant_contact_channel,
             i.informant_phone as informant_phone, i.informant_email as informant_email,
-            a.division_type, a.division_name, a.station, a.officer_name
+            a.division_name, a.station, a.officer_name
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
@@ -96,6 +111,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
+        LEFT JOIN agencies a ON c.investigating_id = a.agency_id
         ${whereClause}
     `;
     const countResult = await pool.query(countQuery, queryParams);
@@ -104,7 +120,7 @@ const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) =
     return {
         totalItems,
         totalPages: Math.ceil(totalItems / limitNum) || 1,
-        currentPage: pageNum,
+        currentPage: parseInt(page, 10),
         tableData: dataResult.rows
     };
 };
@@ -119,7 +135,7 @@ const getDobFromAgeOrDob = (age, dob) => {
     return null;
 };
 
-const createMissingPersonRecord = async (data, file) => {
+const createMissingPersonRecord = async (data, file, passportFile, pjvFile) => {
     const client = await pool.connect();
     try {
         const {
@@ -194,13 +210,12 @@ const createMissingPersonRecord = async (data, file) => {
                 let agencyQuery = `
                     INSERT INTO agencies (
                         command_center, station, officer_name,
-                        division_type, division_name
-                    ) VALUES ($1, $2, $3, $4, $5) 
+                        division_name
+                    ) VALUES ($1, $2, $3, $4) 
                     RETURNING agency_id
                 `;
                 let agencyRes = await client.query(agencyQuery, [
                     data.command_center, data.station, data.officer_name,
-                    data.division_type || 'division_1',
                     data.division_name || 'ไม่ระบุ'
                 ]);
                 agency_id = agencyRes.rows[0].agency_id;
@@ -224,6 +239,40 @@ const createMissingPersonRecord = async (data, file) => {
             }
         }
 
+        let drivePassportUrl = null;
+        if (passportFile && passportFile.buffer) {
+            try {
+                const tempFileName = `passport_${Date.now()}_${Math.floor(Math.random() * 1000)}.${passportFile.originalname.split('.').pop() || 'jpeg'}`;
+                const driveResult = await uploadWithRetry({
+                    originalname: tempFileName,
+                    mimetype: passportFile.mimetype,
+                    buffer: passportFile.buffer,
+                }, process.env.GOOGLE_DRIVE_FOLDER_PASSPORT);
+                if (driveResult && driveResult.webViewLink) {
+                    drivePassportUrl = driveResult.webViewLink;
+                }
+            } catch (e) {
+                console.error("Passport upload error:", e.message);
+            }
+        }
+
+        let drivePjvUrl = pjv_file_url || null;
+        if (pjvFile && pjvFile.buffer) {
+            try {
+                const tempFileName = `pjv_${Date.now()}_${Math.floor(Math.random() * 1000)}.${pjvFile.originalname.split('.').pop() || 'pdf'}`;
+                const driveResult = await uploadWithRetry({
+                    originalname: tempFileName,
+                    mimetype: pjvFile.mimetype,
+                    buffer: pjvFile.buffer,
+                }, process.env.GOOGLE_DRIVE_FOLDER_DOCUMENT);
+                if (driveResult && driveResult.webViewLink) {
+                    drivePjvUrl = driveResult.webViewLink;
+                }
+            } catch (e) {
+                console.error("PJV file upload error:", e.message);
+            }
+        }
+
         const parseMissingDate = missing_date ? parseDateForDB(missing_date) || missing_date : null;
         const parseEntryDate = entry_date ? parseDateForDB(entry_date) || entry_date : null;
         const parseReportedDate = reported_date ? parseDateForDB(reported_date) || reported_date : null;
@@ -235,7 +284,7 @@ const createMissingPersonRecord = async (data, file) => {
                 missing_date, missing_time, detected_location_details,
                 detected_location_sub_district, detected_location_district, detected_location_province,
                 incident_summary, human_trafficking_indicators,
-                notes, photo_url, entry_channel, entry_checkpoint_province, airline, entry_date,
+                notes, photo_url, passport_photo_url, entry_channel, entry_checkpoint_province, airline, entry_date,
                 investigating_id, reported_date, receiving_channel, case_number, pjv_number,
                 pjv_file_url, operation_result, found_date, victim_classification,
                 human_trafficking_type, action_taken
@@ -255,6 +304,7 @@ const createMissingPersonRecord = async (data, file) => {
             human_trafficking_indicators === "true" || human_trafficking_indicators === true,
             notes || null,
             drivePhotoUrl,
+            drivePassportUrl,
             validateLen(entry_channel, 255),
             validateLen(entry_checkpoint_province, 255),
             validateLen(airline, 100),
@@ -264,7 +314,7 @@ const createMissingPersonRecord = async (data, file) => {
             validateLen(receiving_channel, 255),
             validateLen(case_number, 100),
             validateLen(pjv_number, 100),
-            pjv_file_url || null,
+            drivePjvUrl,
             operation_result === "true" || operation_result === true,
             parseFoundDate,
             victim_classification || null,
@@ -290,14 +340,14 @@ const fetchMissingPersonById = async (id) => {
             mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.relationship, c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date,
             c.detected_location_details, c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
-            c.missing_date, c.missing_time, c.photo_url, c.investigating_id, c.reported_date, c.receiving_channel,
+            c.missing_date, c.missing_time, c.photo_url, c.passport_photo_url, c.investigating_id, c.reported_date, c.receiving_channel,
             c.incident_summary, c.case_number, c.pjv_number, c.pjv_file_url, c.human_trafficking_indicators,
             c.victim_classification, c.human_trafficking_type, c.action_taken, c.operation_result,
             c.found_date, c.notes,
             i.informant_id, i.first_name_th AS informant_first_name_th, i.last_name_th AS informant_last_name_th,
             i.date_of_birth AS informant_date_of_birth, i.gender AS informant_gender, i.nationality AS informant_nationality,
             i.informant_id_card_passport, i.informant_contact_channel, i.informant_phone, i.informant_email,
-            a.agency_id, a.command_center, a.station, a.officer_name, a.division_type, a.division_name
+            a.agency_id, a.command_center, a.station, a.officer_name, a.division_name
         FROM missing_persons mp
         LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
         LEFT JOIN informants i ON c.informant_id = i.informant_id
@@ -308,7 +358,7 @@ const fetchMissingPersonById = async (id) => {
     return result.rows.length > 0 ? result.rows[0] : null;
 };
 
-const updateMissingPersonRecord = async (id, data, file) => {
+const updateMissingPersonRecord = async (id, data, file, passportFile, pjvFile) => {
     const client = await pool.connect();
     try {
         const {
@@ -359,13 +409,12 @@ const updateMissingPersonRecord = async (id, data, file) => {
                 let agencyQuery = `
                     INSERT INTO agencies (
                         command_center, station, officer_name,
-                        division_type, division_name
-                    ) VALUES ($1, $2, $3, $4, $5) 
+                        division_name
+                    ) VALUES ($1, $2, $3, $4) 
                     RETURNING agency_id
                 `;
                 let agencyRes = await client.query(agencyQuery, [
                     data.command_center, data.station, data.officer_name,
-                    data.division_type || 'division_1',
                     data.division_name || 'ไม่ระบุ'
                 ]);
                 agency_id = agencyRes.rows[0].agency_id;
@@ -386,6 +435,40 @@ const updateMissingPersonRecord = async (id, data, file) => {
                 }
             } catch (e) {
                 console.error("Photo upload error:", e.message);
+            }
+        }
+
+        let drivePassportUrl = null;
+        if (passportFile && passportFile.buffer) {
+            try {
+                const tempFileName = `passport_update_${Date.now()}_${Math.floor(Math.random() * 1000)}.${passportFile.originalname.split('.').pop() || 'jpeg'}`;
+                const driveResult = await uploadWithRetry({
+                    originalname: tempFileName,
+                    mimetype: passportFile.mimetype,
+                    buffer: passportFile.buffer,
+                }, process.env.GOOGLE_DRIVE_FOLDER_PASSPORT);
+                if (driveResult && driveResult.webViewLink) {
+                    drivePassportUrl = driveResult.webViewLink;
+                }
+            } catch (e) {
+                console.error("Passport upload error:", e.message);
+            }
+        }
+
+        let drivePjvUrl = pjv_file_url || null;
+        if (pjvFile && pjvFile.buffer) {
+            try {
+                const tempFileName = `pjv_update_${Date.now()}_${Math.floor(Math.random() * 1000)}.${pjvFile.originalname.split('.').pop() || 'pdf'}`;
+                const driveResult = await uploadWithRetry({
+                    originalname: tempFileName,
+                    mimetype: pjvFile.mimetype,
+                    buffer: pjvFile.buffer,
+                }, process.env.GOOGLE_DRIVE_FOLDER_DOCUMENT);
+                if (driveResult && driveResult.webViewLink) {
+                    drivePjvUrl = driveResult.webViewLink;
+                }
+            } catch (e) {
+                console.error("PJV file upload error:", e.message);
             }
         }
 
@@ -416,17 +499,22 @@ const updateMissingPersonRecord = async (id, data, file) => {
             case_number, pjv_number, agency_id, operation_result,
             parseFoundDate, parseReportedDate, relationship,
             entry_channel, entry_checkpoint_province, airline, parseEntryDate,
-            receiving_channel, pjv_file_url, victim_classification,
+            receiving_channel, drivePjvUrl, victim_classification,
             human_trafficking_type, action_taken
         ];
 
+        let paramIndex = 26;
         if (drivePhotoUrl) {
-            caseUpdateQuery += `, photo_url = $26 WHERE case_id = $27`;
-            caseParams.push(drivePhotoUrl, case_id);
-        } else {
-            caseUpdateQuery += ` WHERE case_id = $26`;
-            caseParams.push(case_id);
+            caseUpdateQuery += `, photo_url = $${paramIndex++}`;
+            caseParams.push(drivePhotoUrl);
         }
+        if (drivePassportUrl) {
+            caseUpdateQuery += `, passport_photo_url = $${paramIndex++}`;
+            caseParams.push(drivePassportUrl);
+        }
+        
+        caseUpdateQuery += ` WHERE case_id = $${paramIndex}`;
+        caseParams.push(case_id);
 
         await client.query(caseUpdateQuery, caseParams);
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useAgenciesOptions } from "@/hooks/useAgenciesOptions";
 
 export interface StatItem { label: string; value: number | string; }
 export interface ChartItem { name: string; value: number; color: string; }
@@ -12,6 +13,8 @@ export interface DashboardData {
     ageGroup?: { name: string; value: number; color?: string }[];
     humanTrafficking?: { name: string; value: number; color?: string }[];
     status?: { name: string; value: number; color?: string }[];
+    commandCenter?: { name: string; value: number; color?: string }[];
+    divisionName?: { name: string; value: number; color?: string }[];
     reportedDateTrend?: { name: string; value: number; color?: string }[];
   };
   meta: { totalItems: number; totalPages: number; currentPage: number; allNationalities: string[]; allGenders: string[]; allProvinces: string[]; };
@@ -41,9 +44,17 @@ export function useDashboard() {
   const [filterAge, setFilterAge] = useState<string>("ทั้งหมด");
   const [filterTrafficking, setFilterTrafficking] = useState<string>("ทั้งหมด");
   const [filterStatus, setFilterStatus] = useState<string>("ทั้งหมด");
+  const [filterCommandCenter, setFilterCommandCenter] = useState<string>("ทั้งหมด");
+  const [filterDivisionName, setFilterDivisionName] = useState<string>("ทั้งหมด");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const { commandCenterOptions, divisionOptions } = useAgenciesOptions(
+    filterCommandCenter === "ทั้งหมด" ? "" : filterCommandCenter, 
+    filterDivisionName === "ทั้งหมด" ? "" : filterDivisionName, 
+    ""
+  );
 
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -55,6 +66,8 @@ export function useDashboard() {
       ageGroup: filterAge,
       human_trafficking: filterTrafficking,
       status: filterStatus,
+      command_center: filterCommandCenter,
+      division_name: filterDivisionName,
       page: currentPage.toString(),
       limit: "50"
     });
@@ -91,7 +104,7 @@ export function useDashboard() {
       });
     return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterNat, filterGender, startDate, endDate, filterProvince, filterAge, filterTrafficking, filterStatus, currentPage, sortField, sortDirection]);
+  }, [filterNat, filterGender, startDate, endDate, filterProvince, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, currentPage, sortField, sortDirection]);
 
   const handleFilterChange = (setter: Function, value: any) => { setter(value); setCurrentPage(1); };
   const handleSort = (field: string) => {
@@ -101,7 +114,7 @@ export function useDashboard() {
   };
   const resetFilters = () => {
     setFilterNat("ทั้งหมด"); setFilterGender("ทั้งหมด"); 
-    setStartDate(""); setEndDate(""); setFilterProvince("ทั้งหมด"); setFilterAge("ทั้งหมด"); setFilterTrafficking("ทั้งหมด"); setFilterStatus("ทั้งหมด"); setSortField(""); setCurrentPage(1);
+    setStartDate(""); setEndDate(""); setFilterProvince("ทั้งหมด"); setFilterAge("ทั้งหมด"); setFilterTrafficking("ทั้งหมด"); setFilterStatus("ทั้งหมด"); setFilterCommandCenter("ทั้งหมด"); setFilterDivisionName("ทั้งหมด"); setSortField(""); setCurrentPage(1);
   };
 
   const nationalitiesOptions = dashboardData?.meta?.allNationalities || ["ทั้งหมด"];
@@ -139,9 +152,12 @@ export function useDashboard() {
   const statusChart = formatStandardChartData(dashboardData?.charts?.status, dashboardData?.stats?.total, 1);
   const reportedDateChart = dashboardData?.charts?.reportedDateTrend?.map((d: any) => ({ ...d, color: "var(--blueText)" })) || [];
 
+  const commandCenterChart = formatStandardChartData(dashboardData?.charts?.commandCenter, dashboardData?.stats?.total, 0);
+  const divisionNameChart = formatStandardChartData(dashboardData?.charts?.divisionName, dashboardData?.stats?.total, 1);
+
   return {
-    states: { filterNat, filterGender, filterProvince, filterAge, filterTrafficking, filterStatus, startDate, endDate, currentPage, sortField, sortDirection, loading, isUpdating, dashboardData },
-    actions: { handleFilterChange, handleSort, resetFilters, setCurrentPage, setFilterNat, setFilterGender, setStartDate, setEndDate, setFilterProvince, setFilterAge, setFilterTrafficking, setFilterStatus },
-    derived: { nationalitiesOptions, gendersOptions, provinceOptions, ageOptions, traffickingOptions, statusOptions, provinceChart, ageChart, traffickingChart, statusChart, reportedDateChart, tableRows, stats, natChart, genderChart, totalPages: dashboardData?.meta?.totalPages || 1, totalItems: dashboardData?.meta?.totalItems || 0 }
+    states: { filterNat, filterGender, filterProvince, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, startDate, endDate, currentPage, sortField, sortDirection, loading, isUpdating, dashboardData },
+    actions: { handleFilterChange, handleSort, resetFilters, setCurrentPage, setFilterNat, setFilterGender, setStartDate, setEndDate, setFilterProvince, setFilterAge, setFilterTrafficking, setFilterStatus, setFilterCommandCenter, setFilterDivisionName },
+    derived: { nationalitiesOptions, gendersOptions, provinceOptions, ageOptions, traffickingOptions, statusOptions, commandCenterOptions, divisionOptions, provinceChart, ageChart, traffickingChart, statusChart, reportedDateChart, tableRows, stats, natChart, genderChart, commandCenterChart, divisionNameChart, totalPages: dashboardData?.meta?.totalPages || 1, totalItems: dashboardData?.meta?.totalItems || 0 }
   };
 }

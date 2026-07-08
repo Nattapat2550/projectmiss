@@ -13,6 +13,7 @@ import {
     getVal,
     limitConcurrency
  } from "../utils/uploadHelpers";
+import { fuzzyMatchCommandCenter, fuzzyMatchDivision } from "../utils/fuzzyMatchAgency";
 import * as cache from "../utils/cache";
 
 const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
@@ -153,20 +154,15 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             police_station: getVal(row, ["สถานีตำรวจ", "สถานีตำรวจภูธร", "สถานีตำรวจนครบาล", "สถานีตำรวจ "]),
             police_substation: getVal(row, ["สังกัด สน./สภ.", "สน./สภ.", "สน/สภ", "สน.", "สภ."]),
             investigator: getVal(row, ["พนักงานสอบสวนผู้รับผิดชอบ"]),
-            police_command: getVal(row, ["กองบัญชาการที่รับแจ้ง", "1. กรุณาเลือก กองบัญชาการ (บช.)", "กรุณาเลือก กองบัญชาการ (บช.)"]),
-            division_type: (() => {
-                for(let i=1; i<=13; i++) {
-                    const colNames = i === 1 ? ["กรุณาเลือก กองบังคับการ (บก.)", "กองบังคับการ (บก.)"] : [`กรุณาเลือก กองบังคับการ (บก.) ${i}`];
-                    const val = getVal(row, colNames);
-                    if (val && val.toString().trim() !== "" && val.toString().trim() !== "ไม่ระบุ") return `division_${i}`;
-                }
-                return null;
-            })(),
+            police_command: fuzzyMatchCommandCenter(getVal(row, ["กองบัญชาการที่รับแจ้ง", "1. กรุณาเลือก กองบัญชาการ (บช.)", "กรุณาเลือก กองบัญชาการ (บช.)"])),
             division_name: (() => {
+                const commandCenterMatch = fuzzyMatchCommandCenter(getVal(row, ["กองบัญชาการที่รับแจ้ง", "1. กรุณาเลือก กองบัญชาการ (บช.)", "กรุณาเลือก กองบัญชาการ (บช.)"]));
                 for(let i=1; i<=13; i++) {
                     const colNames = i === 1 ? ["กรุณาเลือก กองบังคับการ (บก.)", "กองบังคับการ (บก.)"] : [`กรุณาเลือก กองบังคับการ (บก.) ${i}`];
                     const val = getVal(row, colNames);
-                    if (val && val.toString().trim() !== "" && val.toString().trim() !== "ไม่ระบุ") return val.toString().trim();
+                    if (val && val.toString().trim() !== "" && val.toString().trim() !== "ไม่ระบุ") {
+                        return fuzzyMatchDivision(val.toString().trim(), commandCenterMatch);
+                    }
                 }
                 return null;
             })(),
@@ -300,14 +296,13 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     let agencyQuery = `
                         INSERT INTO agencies (
                             command_center, station, officer_name,
-                            division_type, division_name
-                        ) VALUES ($1, $2, $3, $4, $5) 
+                            division_name
+                        ) VALUES ($1, $2, $3, $4) 
                         RETURNING agency_id
                     `;
                     let agencyRes = await client.query(agencyQuery, [
                         validateLen(mappedRow.police_command, 255), validateLen(stationCombined, 255),
                         validateLen(officerName, 255),
-                        mappedRow.division_type || 'division_1',
                         validateLen(mappedRow.division_name || 'ไม่ระบุ', 255)
                     ]);
                     agency_id = agencyRes.rows[0].agency_id;

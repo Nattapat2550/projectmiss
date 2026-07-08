@@ -5,7 +5,7 @@ export const getAgenciesOptions = async (req, res) => {
         const query = `
             SELECT 
                 DISTINCT command_center, 
-                division_type, division_name,
+                division_name,
                 station, 
                 officer_name 
             FROM agencies 

@@ -1,13 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-
-interface Agency {
-    command_center: string;
-    division_name?: string;
-    station: string;
-    officer_name: string;
-}
-
-export const AGENCY_STRUCTURE: Record<string, string[]> = {
+// frontend options mapping
+const AGENCY_STRUCTURE: Record<string, string[]> = {
     "กองบัญชาการตำรวจนครบาล (บช.น.)": [
         "กองบังคับการตำรวจนครบาล 1 (บก.น.1)",
         "กองบังคับการตำรวจนครบาล 2 (บก.น.2)",
@@ -171,58 +163,67 @@ export const AGENCY_STRUCTURE: Record<string, string[]> = {
     ]
 };
 
-export function useAgenciesOptions(
-    selectedCommandCenter: string,
-    selectedDivision: string,        // ชื่อ บก. ที่เลือก
-    selectedStation: string
-) {
-    const [agencies, setAgencies] = useState<Agency[]>([]);
-    const [loading, setLoading] = useState(false);
+export function fuzzyMatchCommandCenter(rawStr: any): string | null {
+    if (!rawStr) return null;
+    let str = String(rawStr).trim().toLowerCase().replace(/\s+/g, '');
+    if (str === "" || str === "ไม่ระบุ") return null;
 
-    useEffect(() => {
-        const fetchAgencies = async () => {
-            setLoading(true);
-            try {
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-                const response = await fetch(`${backendUrl}/api/v1/agencies/options`);
-                const data = await response.json();
-                if (data.success) {
-                    setAgencies(data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching agencies:", error);
-            } finally {
-                setLoading(false);
+    const keys = Object.keys(AGENCY_STRUCTURE);
+    for (const key of keys) {
+        const keyClean = key.replace(/\s+/g, '').toLowerCase();
+        if (keyClean === str) return key; // exact match after spaces removed
+        
+        // Match abbreviation in parentheses, e.g. "บช.น." or "ภ.1"
+        const abbrMatch = key.match(/\((.*?)\)/);
+        if (abbrMatch) {
+            const abbrClean = abbrMatch[1].replace(/\s+/g, '').toLowerCase();
+            if (str === abbrClean || str.includes(abbrClean) || abbrClean.includes(str)) {
+                return key;
             }
-        };
-        fetchAgencies();
-    }, []);
-
-    // บช. ล็อคตาม โครงสร้าง
-    const commandCenterOptions = useMemo(() => {
-        return Object.keys(AGENCY_STRUCTURE).map(val => ({ label: val, value: val }));
-    }, []);
-
-    // บก. ล็อคตาม บช.
-    const divisionOptions = useMemo(() => {
-        if (!selectedCommandCenter || !AGENCY_STRUCTURE[selectedCommandCenter]) {
-            return [];
         }
-        return AGENCY_STRUCTURE[selectedCommandCenter].map(val => ({ label: val, value: val }));
-    }, [selectedCommandCenter]);
-
-    // สน./สภ. ยังคงโหลดจาก db แบบ dynamic
-    const stationOptions = useMemo(() => {
-        let filtered = agencies;
-        if (selectedCommandCenter) {
-            filtered = filtered.filter(a => a.command_center === selectedCommandCenter);
+        
+        // Partial match on the full name
+        if (keyClean.includes(str)) {
+            return key;
         }
-        if (selectedDivision) {
-            filtered = filtered.filter(a => a.division_name === selectedDivision);
-        }
-        const set = new Set(filtered.map(a => a.station).filter(Boolean));
-        return Array.from(set).map(val => ({ label: val, value: val }));
-    }, [agencies, selectedCommandCenter, selectedDivision]);
+    }
+    
+    return null; // No match found
+}
 
-    return { commandCenterOptions, divisionOptions, stationOptions, loading };
+export function fuzzyMatchDivision(rawStr: any, matchedCommandCenter: string | null): string | null {
+    if (!rawStr) return null;
+    let str = String(rawStr).trim().toLowerCase().replace(/\s+/g, '');
+    if (str === "" || str === "ไม่ระบุ") return null;
+
+    // If command center is matched and has standard divisions, only match within them
+    if (matchedCommandCenter && AGENCY_STRUCTURE[matchedCommandCenter] && AGENCY_STRUCTURE[matchedCommandCenter].length > 0) {
+        const divs = AGENCY_STRUCTURE[matchedCommandCenter];
+        for (const div of divs) {
+            const divClean = div.replace(/\s+/g, '').toLowerCase();
+            if (divClean === str) return div;
+
+            const abbrMatch = div.match(/\((.*?)\)/);
+            if (abbrMatch) {
+                const abbrClean = abbrMatch[1].replace(/\s+/g, '').toLowerCase();
+                if (str === abbrClean || str.includes(abbrClean)) {
+                    return div;
+                }
+            }
+
+            if (divClean.includes(str)) {
+                return div;
+            }
+        }
+        return null; // Not matching any specific division in the known list
+    } else {
+        // If no strict divisions are known for this bureau yet, return the raw string or try to match globally?
+        // User requested: "ถ้าไม่เลย ก็ไม่ต้องกรอก" (If no match at all, don't fill it).
+        // Since we don't have standard lists for others, we either accept it as is or reject.
+        // Let's accept it as is if we don't have a list for that command center.
+        if (matchedCommandCenter && AGENCY_STRUCTURE[matchedCommandCenter] && AGENCY_STRUCTURE[matchedCommandCenter].length === 0) {
+            return String(rawStr).trim();
+        }
+        return null;
+    }
 }

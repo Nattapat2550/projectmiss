@@ -11,7 +11,6 @@ CREATE TABLE users (
 CREATE TABLE agencies (
     agency_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     command_center VARCHAR(255),           -- กองบัญชาการที่รับแจ้ง / กรุณาเลือก กองบัญชาการ (บช.)
-    division_type VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.) 1-13
     division_name VARCHAR(255),               -- กรุณาเลือก กองบังคับการ (บก.)
     station VARCHAR(255),                  -- สังกัด สน./สภ.
     officer_name VARCHAR(255),             -- ชื่อพนักงานสอบสวน/ตำรวจ
@@ -76,6 +75,7 @@ CREATE TABLE cases (
     missing_date DATE,                     -- วันที่สูญหาย หรือ คาดว่าสูญหาย
     missing_time TIME,                     -- เวลาสูญหาย หรือ คาดว่าสูญหาย
     photo_url TEXT,                        -- รูปภาพ (เก็บเป็น URL Link ไปยัง Object Storage)
+    passport_photo_url TEXT,               -- รูปภาพพาสปอร์ต
     
     -- ข้อมูลที่ย้ายมาจาก agencies
     investigating_id UUID REFERENCES agencies(agency_id) ON DELETE SET NULL,    -- พนักงานสอบสวนผู้รับผิดชอบ

@@ -3,9 +3,9 @@ import * as cache from "../utils/cache";
 
 export const getMissingPersons = async (req, res) => {
     try {
-        const { page = 1, limit = 50, sortBy, sortOrder = "desc", search } = req.query;
+        const { page = 1, limit = 50, sortBy, sortOrder = "desc", search, command_center, division_name } = req.query;
         
-        const result = await missingService.fetchMissingPersons({ page, limit, sortBy, sortOrder, search });
+        const result = await missingService.fetchMissingPersons({ page, limit, sortBy, sortOrder, search, command_center, division_name });
 
         res.status(200).json({
             success: true,
@@ -30,7 +30,12 @@ export const createMissingPerson = async (req, res) => {
             return res.status(400).json({ success: false, message: "กรุณากรอกชื่อและนามสกุลบุคคลสูญหาย" });
         }
 
-        const missing_person_id = await missingService.createMissingPersonRecord(req.body, req.file);
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+        const photoFile = files?.["photo"]?.[0];
+        const passportPhotoFile = files?.["passport_photo"]?.[0];
+        const pjvFile = files?.["pjv_file"]?.[0];
+
+        const missing_person_id = await missingService.createMissingPersonRecord(req.body, photoFile, passportPhotoFile, pjvFile);
 
         cache.clear();
 
@@ -65,7 +70,12 @@ export const updateMissingPerson = async (req, res) => {
     try {
         const { id } = req.params;
         
-        await missingService.updateMissingPersonRecord(id, req.body, req.file);
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+        const photoFile = files?.["photo"]?.[0];
+        const passportPhotoFile = files?.["passport_photo"]?.[0];
+        const pjvFile = files?.["pjv_file"]?.[0];
+        
+        await missingService.updateMissingPersonRecord(id, req.body, photoFile, passportPhotoFile, pjvFile);
 
         cache.clear();
 

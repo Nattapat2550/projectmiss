@@ -8,18 +8,10 @@ import { useAgenciesOptions } from "@/hooks/useAgenciesOptions";
 
 export default function MissingEditForm({ 
   formData, isSaving, imagePreview, imageFile,
-  handlers, onCancel 
+  handlers, onCancel, states 
 }: any) {
-  const { handleInputChange, handleImageChange, handleSave, handleImageRemove } = handlers;
+  const { handleInputChange, handleImageChange, handleSave, handleImageRemove, handlePassportImageChange, handlePassportImageRemove, handlePjvFileChange, handlePjvFileRemove } = handlers;
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-
-  const handleActiveDivisionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newType = e.target.value;
-    handleInputChange({ target: { name: "division_type", value: newType } } as any);
-    handleInputChange({ target: { name: "division_name", value: "" } } as any);
-  };
-
-  // 🟢 ฟังก์ชันแปลงลิงก์อัจฉริยะ (ดึงมาจากหน้าการ์ดที่แสดงผลได้สำเร็จ)
   const getFullImageUrl = (url: string) => {
     if (!url) return null;
     if (url.startsWith("blob:")) return url; // ถ้าเป็นรูปที่เพิ่งกดเลือกจากเครื่อง ให้โชว์ตรงๆ
@@ -57,7 +49,7 @@ export default function MissingEditForm({
   const inputClass = "w-full border px-3 py-1.5 text-sm rounded-sm bg-background !text-black dark:!text-white border-(--wrapper) focus:outline-none transition-all";
   const labelClass = "block text-xs font-semibold mb-1.5 !text-black dark:!text-white opacity-80";
   const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
-  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_type, formData.division_name, formData.station);
+  const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_name, formData.station);
 
   const handleSelectDetDistrict = (opt: any) => {
     const { district, province } = opt.extra;
@@ -72,18 +64,30 @@ export default function MissingEditForm({
     handleInputChange({ target: { name: "detected_location_province", value: province } } as any);
   };
 
+  const handleCommandCenterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange(e);
+    handleInputChange({ target: { name: "division_name", value: "" } } as any);
+    handleInputChange({ target: { name: "station", value: "" } } as any);
+  };
+
+  const handleDivisionNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange(e);
+    handleInputChange({ target: { name: "station", value: "" } } as any);
+  };
+
   const isHumanTrafficking = formData.human_trafficking_indicators === true || formData.human_trafficking_indicators === "true";
   const isOperationResult = formData.operation_result === true || formData.operation_result === "true";
 
   const defaultImage = "/return.png";
   const displayImage = imagePreview ? getFullImageUrl(imagePreview) : defaultImage;
+  const displayPassportImage = formData.passport_photo_url ? getFullImageUrl(formData.passport_photo_url) : defaultImage;
 
   return (
     <div className="max-w-2xl mx-auto my-4 bg-(--container) rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
       <div className="p-6 sm:p-8">
         <form onSubmit={handleSave} className="w-full">
           {/* ---------------- รูปภาพ ---------------- */}
-          <div className="grid grid-cols-1 gap-8 mb-6 p-6 rounded-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 p-6 rounded-xl">
             <div>
               <h3 className="text-lg font-bold mb-4 !text-black dark:!text-white">รูปภาพบุคคลสูญหาย</h3>
               <div className="flex flex-col items-start gap-4">
@@ -101,6 +105,30 @@ export default function MissingEditForm({
                   </label>
                   {imagePreview && (
                     <button type="button" onClick={handleImageRemove} className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:opacity-90 transition text-sm cursor-pointer">
+                      <X size={16} /> ลบรูปภาพ
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-bold mb-4 !text-black dark:!text-white">รูปถ่ายหนังสือเดินทาง (ถ้ามี)</h3>
+              <div className="flex flex-col items-start gap-4">
+                <img 
+                  src={displayPassportImage || defaultImage} 
+                  alt="Preview" 
+                  referrerPolicy="no-referrer" 
+                  onError={(e) => { e.currentTarget.src = defaultImage; }}
+                  className="h-40 w-40 object-cover rounded-xl shadow-sm bg-white border border-gray-200 p-1" 
+                />
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-md cursor-pointer hover:opacity-90 text-sm">
+                    <ImageIcon size={16} /> {states?.passportImagePreview || formData.passport_photo_url ? "แก้ไขรูปภาพ" : "อัปโหลดรูปภาพ"}
+                    <input type="file" accept="image/*" onChange={handlePassportImageChange} className="hidden" />
+                  </label>
+                  {(states?.passportImagePreview || formData.passport_photo_url) && (
+                    <button type="button" onClick={handlePassportImageRemove} className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:opacity-90 transition text-sm cursor-pointer">
                       <X size={16} /> ลบรูปภาพ
                     </button>
                   )}
@@ -195,20 +223,12 @@ export default function MissingEditForm({
           
           <h3 className="text-xl font-bold text-(--header) mb-4 mt-8">สถานีตำรวจที่รับแจ้ง</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-            <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center || ""} options={commandCenterOptions} onChange={handleInputChange} className={inputClass} /></div>
+            <div><label className={labelClass}>บช.</label><AutocompleteInput name="command_center" value={formData.command_center || ""} options={commandCenterOptions} onChange={handleCommandCenterChange} className={inputClass} /></div>
             
             <div className="flex flex-col lg:flex-row gap-2 col-span-1">
-              <div className="w-full lg:w-1/3">
-                <label className={labelClass}>เลือก บก.</label>
-                <select value={formData.division_type || "division_1"} onChange={handleActiveDivisionTypeChange} className={inputClass}>
-                  {[...Array(13)].map((_, i) => (
-                    <option key={i} value={`division_${i+1}`}>บก. {i+1}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-full lg:w-2/3">
+              <div className="w-full">
                 <label className={labelClass}>ชื่อ บก.</label>
-                <AutocompleteInput name="division_name" value={formData.division_name || ""} options={divisionOptions} onChange={handleInputChange} className={inputClass} placeholder="ไม่ระบุ" />
+                <AutocompleteInput name="division_name" value={formData.division_name || ""} options={divisionOptions} onChange={handleDivisionNameChange} className={inputClass} placeholder="ไม่ระบุ" />
               </div>
             </div>
 
@@ -226,7 +246,32 @@ export default function MissingEditForm({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
             <div><label className={labelClass}>เลขคดี</label><input type="text" name="case_number" value={formData.case_number || ""} onChange={handleInputChange} className={inputClass} /></div>
             <div><label className={labelClass}>เลข ปจว.</label><input type="text" name="pjv_number" value={formData.pjv_number || ""} onChange={handleInputChange} className={inputClass} /></div>
-            <div><label className={labelClass}>ลิงก์ไฟล์ ปจว. (ถ้ามี)</label><input type="text" name="pjv_file_url" value={formData.pjv_file_url || ""} onChange={handleInputChange} className={inputClass} /></div>
+          <div className="col-span-1 md:col-span-2">
+            <label className={labelClass}>ไฟล์ ปจว. (PDF หรือรูปภาพ)</label>
+            <div className="flex items-center gap-3">
+              {states.pjvFile ? (
+                <div className="flex items-center gap-2 text-sm px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+                  <span className="truncate max-w-[200px]">{states.pjvFile.name}</span>
+                  <button type="button" onClick={handlePjvFileRemove} className="text-red-500 hover:text-red-700">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-md cursor-pointer hover:opacity-90 w-fit text-sm">
+                  <ImageIcon size={16} /> อัปโหลดไฟล์ ปจว.
+                  <input type="file" accept=".pdf,image/*" onChange={handlePjvFileChange} className="hidden" />
+                </label>
+              )}
+              {formData.pjv_file_url && (
+                <a href={formData.pjv_file_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm hover:underline flex items-center gap-1">
+                  ดูไฟล์เดิม
+                </a>
+              )}
+            </div>
+            {!states.pjvFile && !formData.pjv_file_url && (
+              <input type="text" name="pjv_file_url" value={formData.pjv_file_url || ""} onChange={handleInputChange} className={`${inputClass} mt-2`} placeholder="หรือวางลิงก์ไฟล์ ปจว. ที่นี่" />
+            )}
+          </div>
           </div>
 
           <div className="mb-5 flex items-center gap-2 bg-background p-4 rounded-xl border border-(--wrapper)">

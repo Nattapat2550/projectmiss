@@ -45,6 +45,7 @@ export default function MissingPersonDetailPage() {
           isSaving={states.isSaving}
           imagePreview={states.imagePreview}
           imageFile={states.imageFile}
+          states={states}
           handlers={handlers}
           onCancel={() => actions.setIsEditing(false)}
         />

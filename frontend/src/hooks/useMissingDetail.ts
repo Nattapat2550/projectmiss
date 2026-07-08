@@ -8,6 +8,9 @@ export function useMissingDetail(id: string) {
   const [formData, setFormData] = useState<any>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [passportImageFile, setPassportImageFile] = useState<File | null>(null);
+  const [passportImagePreview, setPassportImagePreview] = useState<string | null>(null);
+  const [pjvFile, setPjvFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [note, setNote] = useState("");
 
@@ -28,6 +31,7 @@ export function useMissingDetail(id: string) {
       setFormData(personData);
       setNote(personData.notes || "");
       if (personData.photo_url) setImagePreview(personData.photo_url);
+      if (personData.passport_photo_url) setPassportImagePreview(personData.passport_photo_url);
 
     } catch (err: any) {
       console.error(err);
@@ -62,6 +66,34 @@ export function useMissingDetail(id: string) {
     setFormData((prev: any) => ({ ...prev, photo_url: null })); // Optionally signal removal to backend if supported
   };
 
+  const handlePassportImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPassportImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPassportImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePassportImageRemove = () => {
+    setPassportImageFile(null);
+    setPassportImagePreview(null);
+    setFormData((prev: any) => ({ ...prev, passport_photo_url: null }));
+  };
+
+  const handlePjvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPjvFile(file);
+    }
+  };
+
+  const handlePjvFileRemove = () => {
+    setPjvFile(null);
+    setFormData((prev: any) => ({ ...prev, pjv_file_url: null }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -78,6 +110,12 @@ export function useMissingDetail(id: string) {
 
       if (imageFile) {
         submitData.append("photo", imageFile);
+      }
+      if (passportImageFile) {
+        submitData.append("passport_photo", passportImageFile);
+      }
+      if (pjvFile) {
+        submitData.append("pjv_file", pjvFile);
       }
 
       const res = await fetch(`${backendUrl}/api/v1/missing/${id}`, {
@@ -104,8 +142,8 @@ export function useMissingDetail(id: string) {
   };
 
   return {
-    states: { data, loading, isEditing, formData, imagePreview, isSaving, note, imageFile },
+    states: { data, loading, isEditing, formData, imagePreview, passportImagePreview, isSaving, note, imageFile, passportImageFile, pjvFile },
     actions: { setIsEditing, setNote, fetchData },
-    handlers: { handleInputChange, handleImageChange, handleSave, handleImageRemove }
+    handlers: { handleInputChange, handleImageChange, handleSave, handleImageRemove, handlePassportImageChange, handlePassportImageRemove, handlePjvFileChange, handlePjvFileRemove }
   };
 }

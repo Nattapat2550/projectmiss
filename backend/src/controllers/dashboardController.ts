@@ -27,6 +27,8 @@ export const getDashboardStats = async (req, res) => {
       ageGroup = "ทั้งหมด",
       human_trafficking = "ทั้งหมด",
       status = "ทั้งหมด",
+      command_center = "ทั้งหมด",
+      division_name = "ทั้งหมด",
       page = 1,
       limit = 50,
       sortBy,             
@@ -96,6 +98,16 @@ export const getDashboardStats = async (req, res) => {
         queryParams.push(province);
         paramIndex++;
       }
+    }
+    if (command_center && command_center !== "ทั้งหมด") {
+      conditions.push(`a.command_center = $${paramIndex}`);
+      queryParams.push(command_center);
+      paramIndex++;
+    }
+    if (division_name && division_name !== "ทั้งหมด") {
+      conditions.push(`a.division_name = $${paramIndex}`);
+      queryParams.push(division_name);
+      paramIndex++;
     }
     if (ageGroup && ageGroup !== "ทั้งหมด") {
       if (ageGroup === "0-18 ปี") {
@@ -185,6 +197,7 @@ export const getDashboardStats = async (req, res) => {
       SELECT COUNT(*) 
       FROM missing_persons mp
       LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
+      LEFT JOIN agencies a ON c.investigating_id = a.agency_id
       ${whereClause}
     `;
     const totalCountResult = await pool.query(totalCountQuery, queryParams);
@@ -197,23 +210,23 @@ export const getDashboardStats = async (req, res) => {
     let charts = {};
 
     // นับจำนวนที่พบตัวแล้ว
-    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere ? baseWhere + " AND " : "WHERE "} (c.found_date IS NOT NULL OR c.operation_result = true)`;
+    const foundQuery = `SELECT COUNT(*) FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere ? baseWhere + " AND " : "WHERE "} (c.found_date IS NOT NULL OR c.operation_result = true)`;
     const foundRes = await pool.query(foundQuery, baseParams);
     stats.found = parseInt(foundRes.rows[0].count);
 
     // กราฟสัญชาติ
-    const natChartQuery = `SELECT COALESCE(mp.nationality, 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
+    const natChartQuery = `SELECT COALESCE(mp.nationality, 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
     const natChartRes = await pool.query(natChartQuery, baseParams);
     charts.nationality = natChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
     // กราฟเพศ
-    const genderChartQuery = `SELECT COALESCE(mp.gender, 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
+    const genderChartQuery = `SELECT COALESCE(mp.gender, 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
     const genderChartRes = await pool.query(genderChartQuery, baseParams);
     charts.gender = genderChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
     
     // กราฟจังหวัด
-    const provinceChartQuery = `SELECT COALESCE(NULLIF(TRIM(c.detected_location_province), ''), 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
+    const provinceChartQuery = `SELECT COALESCE(NULLIF(TRIM(c.detected_location_province), ''), 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
     const provinceChartRes = await pool.query(provinceChartQuery, baseParams);
     charts.province = provinceChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
@@ -227,7 +240,7 @@ export const getDashboardStats = async (req, res) => {
           WHEN EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) >= 51 THEN '51 ปีขึ้นไป'
           ELSE 'ไม่ระบุ'
         END as name, COUNT(*) as value
-      FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC
+      FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC
     `;
     const ageChartRes = await pool.query(ageChartQuery, baseParams);
     charts.ageGroup = ageChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
@@ -235,7 +248,7 @@ export const getDashboardStats = async (req, res) => {
     // กราฟวันที่รับแจ้งความ (รายเดือน 12 เดือนล่าสุด)
     const reportedDateChartQuery = `
       SELECT TO_CHAR(DATE_TRUNC('month', c.reported_date), 'Mon YYYY') as name, COUNT(*) as value
-      FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id
+      FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id
       ${baseWhere ? baseWhere + " AND " : "WHERE "} c.reported_date IS NOT NULL
       GROUP BY DATE_TRUNC('month', c.reported_date), TO_CHAR(DATE_TRUNC('month', c.reported_date), 'Mon YYYY')
       ORDER BY DATE_TRUNC('month', c.reported_date) ASC
@@ -245,14 +258,24 @@ export const getDashboardStats = async (req, res) => {
     charts.reportedDateTrend = reportedDateChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
     // กราฟข้อบ่งชี้การค้ามนุษย์
-    const htChartQuery = `SELECT CASE WHEN c.human_trafficking_indicators = true THEN 'มีข้อบ่งชี้' ELSE 'ไม่มีข้อบ่งชี้' END as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
+    const htChartQuery = `SELECT CASE WHEN c.human_trafficking_indicators = true THEN 'มีข้อบ่งชี้' ELSE 'ไม่มีข้อบ่งชี้' END as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
     const htChartRes = await pool.query(htChartQuery, baseParams);
     charts.humanTrafficking = htChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
     // กราฟสถานะการพบตัว
-    const statusChartQuery = `SELECT CASE WHEN c.found_date IS NOT NULL OR c.operation_result = true THEN 'พบตัวแล้ว' ELSE 'ยังไม่พบตัว' END as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
+    const statusChartQuery = `SELECT CASE WHEN c.found_date IS NOT NULL OR c.operation_result = true THEN 'พบตัวแล้ว' ELSE 'ยังไม่พบตัว' END as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC`;
     const statusChartRes = await pool.query(statusChartQuery, baseParams);
     charts.status = statusChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
+
+    // กราฟกองบัญชาการ
+    const commandCenterChartQuery = `SELECT COALESCE(NULLIF(TRIM(a.command_center), ''), 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
+    const commandCenterChartRes = await pool.query(commandCenterChartQuery, baseParams);
+    charts.commandCenter = commandCenterChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
+
+    // กราฟกองบังคับการ
+    const divisionChartQuery = `SELECT COALESCE(NULLIF(TRIM(a.division_name), ''), 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
+    const divisionChartRes = await pool.query(divisionChartQuery, baseParams);
+    charts.divisionName = divisionChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
     let allNatsRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(nationality), ''), 'ไม่ระบุ') as nat FROM missing_persons ORDER BY nat`);
     const allGendersRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(gender), ''), 'ไม่ระบุ') as gen FROM missing_persons ORDER BY gen`);
