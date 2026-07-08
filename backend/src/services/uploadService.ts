@@ -39,8 +39,8 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     }
 
     let filteredData = rawData.filter(row => {
-        const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "";
-        const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]) || "";
+        const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย", "ชื่อ - นามสกุล", "ชื่อ-นามสกุล", "ชื่อจริง"]) || "";
+        const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง", "ชื่อผู้แจ้ง", "ชื่อ - นามสกุล ผู้แจ้ง", "ชื่อ-นามสกุล ผู้แจ้ง"]) || "";
         const parsedMissing = processName(rawMissingName);
         const parsedReporter = processName(rawReporterName);
         return parsedMissing.hasName || parsedReporter.hasName;
@@ -49,7 +49,7 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     // แยกคนกรณีเจอคำว่า "และ"
     let splitData = [];
     for (let row of filteredData) {
-        const rawMissingName = String(getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "");
+        const rawMissingName = String(getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย", "ชื่อ - นามสกุล", "ชื่อ-นามสกุล", "ชื่อจริง"]) || "");
         if (rawMissingName.includes(" และ ") || rawMissingName.includes("และ")) {
             const names = rawMissingName.split(/\s*และ\s*/).filter(n => n.trim() !== "");
             for (let i = 0; i < names.length; i++) {
@@ -109,25 +109,42 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             photo_url_preview = getVal(row, ["รูปภาพ"]);
         }
 
-        const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย"]) || "";
-        const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง"]) || "";
+        const rawMissingName = getVal(row, ["ชื่อบุคคลสูญหาย", "ชื่อ - สกุล ผู้สูญหาย", "ชื่อ - นามสกุล", "ชื่อ-นามสกุล", "ชื่อจริง"]) || "";
+        const rawReporterName = getVal(row, ["ผู้แจ้ง", "ชื่อ - สกุล ผู้แจ้ง", "ชื่อผู้แจ้ง", "ชื่อ - นามสกุล ผู้แจ้ง", "ชื่อ-นามสกุล ผู้แจ้ง"]) || "";
         const parsedMissing = processName(rawMissingName);
         const parsedReporter = processName(rawReporterName);
         const parsedLocation = splitThaiAddress(getVal(row, ["สถานที่สูญหาย หรือ คาดว่าสูญหาย", "สถานที่สูญหาย", "จุดที่พบเห็นครั้งสุดท้าย/จังหวัดที่เดินทางออก", "จุดที่พบเห็นครั้งสุดท้าย"]) || "");
 
-        const missing_first_name_th = (parsedMissing.hasName && parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : "ไม่ระบุ";
-        const missing_middle_name_th = (parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null;
-        const missing_last_name_th = (parsedMissing.hasName && parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : "ไม่ระบุ";
-        const missing_first_name_en = (parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : null;
-        const missing_middle_name_en = (!parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null;
-        const missing_last_name_en = (parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : null;
+        const explicitMissingFNameTh = getVal(row, ["ชื่อจริง", "ชื่อจริง (ภาษาไทย)", "ชื่อ (ภาษาไทย)", "first_name_th"]);
+        const explicitMissingMNameTh = getVal(row, ["ชื่อกลาง", "ชื่อกลาง (ภาษาไทย)", "middle_name_th"]);
+        const explicitMissingLNameTh = getVal(row, ["นามสกุล", "นามสกุล (ภาษาไทย)", "last_name_th"]);
 
-        const reporter_first_name_th = (parsedReporter.hasName && parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : "ไม่ระบุ";
-        const reporter_middle_name_th = (parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null;
-        const reporter_last_name_th = (parsedReporter.hasName && parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : "ไม่ระบุ";
-        const reporter_first_name_en = (parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : null;
-        const reporter_middle_name_en = (!parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null;
-        const reporter_last_name_en = (parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : null;
+        const explicitMissingFNameEn = getVal(row, ["ชื่อจริง (ภาษาอังกฤษ)", "first_name_en"]);
+        const explicitMissingMNameEn = getVal(row, ["ชื่อกลาง (ภาษาอังกฤษ)", "middle_name_en"]);
+        const explicitMissingLNameEn = getVal(row, ["นามสกุล (ภาษาอังกฤษ)", "last_name_en"]);
+
+        const missing_first_name_th = explicitMissingFNameTh || ((parsedMissing.hasName && parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : "ไม่ระบุ");
+        const missing_middle_name_th = explicitMissingMNameTh || ((parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null);
+        const missing_last_name_th = explicitMissingLNameTh || ((parsedMissing.hasName && parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : "ไม่ระบุ");
+        
+        const missing_first_name_en = explicitMissingFNameEn || ((parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.fname) ? parsedMissing.fname.trim() : null);
+        const missing_middle_name_en = explicitMissingMNameEn || ((!parsedMissing.isThai && parsedMissing.mname) ? parsedMissing.mname.trim() : null);
+        const missing_last_name_en = explicitMissingLNameEn || ((parsedMissing.hasName && !parsedMissing.isThai && parsedMissing.lname) ? parsedMissing.lname.trim() : null);
+
+        const explicitReporterFNameTh = getVal(row, ["ชื่อจริงผู้แจ้ง", "ชื่อจริงผู้แจ้ง (ภาษาไทย)", "first_name_th"]);
+        const explicitReporterMNameTh = getVal(row, ["ชื่อกลางผู้แจ้ง", "ชื่อกลางผู้แจ้ง (ภาษาไทย)", "middle_name_th"]);
+        const explicitReporterLNameTh = getVal(row, ["นามสกุลผู้แจ้ง", "นามสกุลผู้แจ้ง (ภาษาไทย)", "last_name_th"]);
+
+        const explicitReporterFNameEn = getVal(row, ["ชื่อจริงผู้แจ้ง (ภาษาอังกฤษ)", "first_name_en"]);
+        const explicitReporterMNameEn = getVal(row, ["ชื่อกลางผู้แจ้ง (ภาษาอังกฤษ)", "middle_name_en"]);
+        const explicitReporterLNameEn = getVal(row, ["นามสกุลผู้แจ้ง (ภาษาอังกฤษ)", "last_name_en"]);
+
+        const reporter_first_name_th = explicitReporterFNameTh || ((parsedReporter.hasName && parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : "ไม่ระบุ");
+        const reporter_middle_name_th = explicitReporterMNameTh || ((parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null);
+        const reporter_last_name_th = explicitReporterLNameTh || ((parsedReporter.hasName && parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : "ไม่ระบุ");
+        const reporter_first_name_en = explicitReporterFNameEn || ((parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.fname) ? parsedReporter.fname.trim() : null);
+        const reporter_middle_name_en = explicitReporterMNameEn || ((!parsedReporter.isThai && parsedReporter.mname) ? parsedReporter.mname.trim() : null);
+        const reporter_last_name_en = explicitReporterLNameEn || ((parsedReporter.hasName && !parsedReporter.isThai && parsedReporter.lname) ? parsedReporter.lname.trim() : null);
 
         const mappedRow = {
             row_index: i + 1,

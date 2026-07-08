@@ -62,7 +62,7 @@ const processName = (rawFullName) => {
   const prefix = matchPrefix ? matchPrefix[1].trim() : "";
   if (matchPrefix) cleanFullName = cleanFullName.substring(matchPrefix[0].length).trim();
 
-  const parts = cleanFullName.split(/\s+/).filter(p => p !== "");
+  const parts = cleanFullName.split(/[\s\u200B-\u200D\uFEFF]+/).filter(p => p !== "");
   const fname = parts[0] || "";
   const mname = parts.length >= 3 ? parts[1] : null;
   const lname = parts.length === 2 ? parts[1] : parts.length >= 3 ? parts.slice(2).join(" ") : "";
