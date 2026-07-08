@@ -1,6 +1,6 @@
 // backend/controllers/dashboardController.js
-const pool = require("../config/db");
-const cache = require("../utils/cache");
+import pool from "../config/db";
+import * as cache from "../utils/cache";
 
 // ฟังก์ชันแปลงปี พ.ศ. เป็น ค.ศ. อัตโนมัติ กรณีพิมพ์ปี 25xx เข้ามา
 const convertBEtoAD = (dateStr) => {
@@ -16,7 +16,7 @@ const convertBEtoAD = (dateStr) => {
     return dateStr;
 };
 
-exports.getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
     const { 
       nationality = "ทั้งหมด", 

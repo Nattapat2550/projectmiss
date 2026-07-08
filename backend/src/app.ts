@@ -1,18 +1,18 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
 if (!global.uploadProgress) {
     global.uploadProgress = {};
 }
 
-const path = require("path");
-const cookieParser = require("cookie-parser");
-const helmet = require("helmet");
+import path from "path";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
 
-const authRoutes = require("./routes/auth"); // นำเข้า Auth Route
-const missingRoutes = require('./routes/missing');
-const dashboardRoutes = require("./routes/dashboard");
-const agenciesRoutes = require("./routes/agencies");
+import authRoutes from "./routes/auth"; // นำเข้า Auth Route
+import missingRoutes from './routes/missing';
+import dashboardRoutes from "./routes/dashboard";
+import agenciesRoutes from "./routes/agencies";
 
 const app = express();
 app.disable('x-powered-by');
@@ -49,4 +49,4 @@ app.use((req, res, next) => {
   });
 });
 
-module.exports = app;
+export default app;

@@ -1,15 +1,15 @@
-const { processUploadMissingExcel } = require("../services/uploadService");
+import {  processUploadMissingExcel  } from "../services/uploadService";
 
 if (!global.uploadProgress) {
     global.uploadProgress = {};
 }
 
-exports.getUploadProgress = (req, res) => {
+export const getUploadProgress = (req, res) => {
     const jobId = req.params.jobId;
     res.json(global.uploadProgress[jobId] || { current: 0, total: 0, status: 'pending' });
 };
 
-exports.uploadMissingExcel = async (req, res) => {
+export const uploadMissingExcel = async (req, res) => {
     try {
         if (!req.file || !req.file.buffer) return res.status(400).json({ success: false, message: "กรุณาแนบไฟล์ Excel" });
 

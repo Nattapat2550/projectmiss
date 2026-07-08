@@ -1,8 +1,8 @@
-const xlsx = require("xlsx");
-const ExcelJS = require("exceljs");
-const pool = require("../config/db");
-const { processName, normalizeNationality, determineGender } = require("../utils/missingHelpers");
-const { 
+import xlsx from "xlsx";
+import ExcelJS from "exceljs";
+import pool from "../config/db";
+import {  processName, normalizeNationality, determineGender  } from "../utils/missingHelpers";
+import {  
     splitThaiAddress, 
     validateLen, 
     formatExcelDate, 
@@ -12,8 +12,8 @@ const {
     downloadImageToBuffer, 
     getVal,
     limitConcurrency
-} = require("../utils/uploadHelpers");
-const cache = require("../utils/cache");
+ } from "../utils/uploadHelpers";
+import * as cache from "../utils/cache";
 
 const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     const workbookXlsx = xlsx.read(fileBuffer, { type: "buffer" });
@@ -429,6 +429,6 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
     return { action: "upload", successCount, totalLength: mappedData.length, errors };
 };
 
-module.exports = {
+export { 
     processUploadMissingExcel
-};
+ };

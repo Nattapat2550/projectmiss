@@ -1,10 +1,10 @@
-const fs = require("fs");
-const path = require("path");
-const { uploadToDrive } = require("../services/googleDriveService");
+import fs from "fs";
+import path from "path";
+import {  uploadToDrive  } from "../services/googleDriveService";
 
 let thaiAddresses = [];
 try {
-    const addressPath = path.resolve(process.cwd(), 'data', 'thai_addresses.json');
+    const addressPath = path.join(__dirname, '../data/thai_addresses.json');
     thaiAddresses = JSON.parse(fs.readFileSync(addressPath, 'utf-8'));
 } catch (err) {
     console.error("Could not load thai_addresses.json for address parsing", err);
@@ -240,7 +240,7 @@ const limitConcurrency = async (tasks, limit) => {
     return Promise.all(results);
 };
 
-module.exports = {
+export { 
     splitThaiAddress,
     validateLen,
     formatExcelDate,
@@ -250,4 +250,4 @@ module.exports = {
     downloadImageToBuffer,
     getVal,
     limitConcurrency
-};
+ };

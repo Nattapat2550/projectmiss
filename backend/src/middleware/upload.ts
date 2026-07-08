@@ -1,4 +1,4 @@
-const multer = require("multer");
+import multer from "multer";
 
 // เปลี่ยนมาใช้ Memory Storage แทนการบันทึกลง Harddisk (diskStorage)
 // เพื่อให้ได้ req.file.buffer นำไปใช้สตรีมขึ้น Google Drive ทันที
@@ -12,4 +12,4 @@ const upload = multer({
   }
 });
 
-module.exports = upload;
+export default upload;

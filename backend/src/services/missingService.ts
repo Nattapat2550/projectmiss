@@ -1,5 +1,5 @@
-const pool = require("../config/db");
-const { uploadWithRetry, validateLen, parseDateForDB } = require("../utils/uploadHelpers");
+import pool from "../config/db";
+import {  uploadWithRetry, validateLen, parseDateForDB  } from "../utils/uploadHelpers";
 
 const fetchMissingPersons = async ({ page, limit, sortBy, sortOrder, search }) => {
     const pageNum = parseInt(page) || 1;
@@ -487,10 +487,10 @@ const removeMissingPerson = async (id) => {
     }
 };
 
-module.exports = {
+export { 
     fetchMissingPersons,
     createMissingPersonRecord,
     fetchMissingPersonById,
     updateMissingPersonRecord,
     removeMissingPerson
-};
+ };

@@ -1,6 +1,6 @@
-const pool = require("../config/db");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+import pool from "../config/db";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 // ฟังก์ชันสร้าง JWT Token ปิดช่องโหว่ Hardcoded Secret
 const getSignedJwtToken = (id) => {
@@ -42,7 +42,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 
 // @desc    Register user
 // @route   POST /api/v1/auth/register
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { name, password, role, color } = req.body;
 
@@ -78,7 +78,7 @@ exports.register = async (req, res) => {
 
 // @desc    Login user
 // @route   POST /api/v1/auth/login
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { name, password } = req.body;
 
@@ -107,7 +107,7 @@ exports.login = async (req, res) => {
 
 // @desc    Log user out / clear cookie
 // @route   GET /api/v1/auth/logout
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   res.cookie("token", "none", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
@@ -122,7 +122,7 @@ exports.logout = async (req, res) => {
 
 // @desc    Get current logged in user
 // @route   GET /api/v1/auth/me
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const userResult = await pool.query("SELECT id, name, role, color FROM users WHERE id = $1", [req.user.id]);
     const user = userResult.rows[0];
@@ -139,7 +139,7 @@ exports.getMe = async (req, res) => {
 
 // @desc    Update user profile
 // @route   PUT /api/v1/auth/profile
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const { name, color } = req.body;
     const userResult = await pool.query(
@@ -154,7 +154,7 @@ exports.updateProfile = async (req, res) => {
 
 // @desc    Update password
 // @route   PUT /api/v1/auth/password
-exports.updatePassword = async (req, res) => {
+export const updatePassword = async (req, res) => {
   try {
     const { password } = req.body;
     const salt = await bcrypt.genSalt(10);

@@ -1,6 +1,6 @@
-const { convertBEtoAD } = require("../utils/immigrantHelpers");
+import {  convertBEtoAD  } from "../utils/immigrantHelpers";
 
-exports.buildDashboardQuerySQL = (query, type) => {
+export const buildDashboardQuerySQL = (query, type) => {
   const { search, sortBy, sortOrder, startDate, endDate, dobStart, dobEnd, creator } = query;
   
   const sDate = convertBEtoAD(startDate);

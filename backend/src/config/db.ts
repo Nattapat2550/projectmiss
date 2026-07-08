@@ -1,4 +1,4 @@
-const { Pool } = require("pg");
+import {  Pool  } from "pg";
 
 const connectionString = process.env.DATABASE_URL;
 const isLocalhost = !connectionString || connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
@@ -21,4 +21,4 @@ pool.connect()
     console.error("❌ PostgreSQL Connection error:", err.message);
   });
 
-module.exports = pool;
+export default pool;

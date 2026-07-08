@@ -7,4 +7,4 @@ const clear = () => {
     console.log("⚡ [Cache Manager] Cache cleared due to write/upload operation.");
 };
 
-module.exports = { get, set, clear };
+export {  get, set, clear  };

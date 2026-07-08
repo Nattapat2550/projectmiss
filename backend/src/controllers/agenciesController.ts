@@ -1,6 +1,6 @@
-const pool = require("../config/db");
+import pool from "../config/db";
 
-exports.getAgenciesOptions = async (req, res) => {
+export const getAgenciesOptions = async (req, res) => {
     try {
         const query = `
             SELECT 

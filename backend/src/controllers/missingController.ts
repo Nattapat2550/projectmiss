@@ -1,7 +1,7 @@
-const missingService = require("../services/missingService");
-const cache = require("../utils/cache");
+import * as missingService from "../services/missingService";
+import * as cache from "../utils/cache";
 
-exports.getMissingPersons = async (req, res) => {
+export const getMissingPersons = async (req, res) => {
     try {
         const { page = 1, limit = 50, sortBy, sortOrder = "desc", search } = req.query;
         
@@ -22,7 +22,7 @@ exports.getMissingPersons = async (req, res) => {
     }
 };
 
-exports.createMissingPerson = async (req, res) => {
+export const createMissingPerson = async (req, res) => {
     try {
         const { missing_first_name_th, missing_last_name_th } = req.body;
 
@@ -45,7 +45,7 @@ exports.createMissingPerson = async (req, res) => {
     }
 };
 
-exports.getMissingPersonById = async (req, res) => {
+export const getMissingPersonById = async (req, res) => {
     try {
         const { id } = req.params;
         const data = await missingService.fetchMissingPersonById(id);
@@ -61,7 +61,7 @@ exports.getMissingPersonById = async (req, res) => {
     }
 };
 
-exports.updateMissingPerson = async (req, res) => {
+export const updateMissingPerson = async (req, res) => {
     try {
         const { id } = req.params;
         
@@ -76,7 +76,7 @@ exports.updateMissingPerson = async (req, res) => {
     }
 };
 
-exports.deleteMissingPerson = async (req, res) => {
+export const deleteMissingPerson = async (req, res) => {
     try {
         const { id } = req.params;
         

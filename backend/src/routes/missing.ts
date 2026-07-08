@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const multer = require("multer");
-const missingController = require("../controllers/missingController");
-const uploadController = require("../controllers/uploadController");
-const { protect } = require("../middleware/auth");
+import multer from "multer";
+import * as missingController from "../controllers/missingController";
+import * as uploadController from "../controllers/uploadController";
+import {  protect  } from "../middleware/auth";
 
 // 🟢 เปลี่ยนเป็นใช้ MemoryStorage เพื่อให้ Controller สามารถอ่าน req.file.buffer ได้
 const storage = multer.memoryStorage();
@@ -22,4 +22,4 @@ router.get("/:id", missingController.getMissingPersonById);
 router.put("/:id", protect, upload.single("photo"), missingController.updateMissingPerson);
 router.delete("/:id", protect, missingController.deleteMissingPerson);
 
-module.exports = router;
+export default router;

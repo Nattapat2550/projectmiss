@@ -1,6 +1,6 @@
-const { google } = require('googleapis');
-const fs = require('fs');
-const { Readable } = require('stream'); // 🟢 นำเข้าเครื่องมือแปลง Buffer เป็น Stream
+import {  google  } from 'googleapis';
+import fs from 'fs';
+import {  Readable  } from 'stream'; // 🟢 นำเข้าเครื่องมือแปลง Buffer เป็น Stream
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -87,4 +87,4 @@ const extractDriveFileId = (url) => {
   return null;
 };
 
-module.exports = { uploadToDrive, deleteFromDrive, extractDriveFileId };
+export {  uploadToDrive, deleteFromDrive, extractDriveFileId  };
