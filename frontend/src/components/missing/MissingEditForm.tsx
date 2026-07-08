@@ -116,10 +116,10 @@ export default function MissingEditForm({
               <h3 className="text-lg font-bold mb-4 !text-black dark:!text-white">รูปถ่ายหนังสือเดินทาง (ถ้ามี)</h3>
               <div className="flex flex-col items-start gap-4">
                 <img 
-                  src={displayPassportImage || defaultImage} 
-                  alt="Preview" 
+                  src={displayPassportImage && displayPassportImage !== defaultImage ? displayPassportImage : "/passport.png"} 
+                  alt="Passport Preview" 
                   referrerPolicy="no-referrer" 
-                  onError={(e) => { e.currentTarget.src = defaultImage; }}
+                  onError={(e) => { e.currentTarget.src = "/passport.png"; }}
                   className="h-40 w-40 object-cover rounded-xl shadow-sm bg-white border border-gray-200 p-1" 
                 />
                 <div className="flex gap-3">

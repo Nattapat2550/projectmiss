@@ -228,7 +228,7 @@ export default function CreateMissingPerson() {
           </div>
           <div className="flex flex-col items-start gap-4">
             <span className="text-sm font-bold text-(--header) opacity-70">รูปถ่ายหนังสือเดินทาง (ถ้ามี)</span>
-            <SingleImageField file={selectedPassportImage} previewUrl="/return.png" onChange={handlePassportImageChange} onRemove={handlePassportImageRemove}/>
+            <SingleImageField file={selectedPassportImage} previewUrl="/passport.png" onChange={handlePassportImageChange} onRemove={handlePassportImageRemove}/>
           </div>
         </div>
 

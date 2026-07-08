@@ -203,19 +203,80 @@ function DashboardContent() {
                  />
 
                  {/* Pagination */}
-                 {derived.totalPages > 1 && (
-                    <div className="flex justify-between items-center bg-(--container) p-4 border border-(--wrapper) rounded-[0.2rem] shadow-[4px_4px_0px_rgba(0,0,0,0.25)] mt-6">
-                      <span className="text-sm font-medium">หน้า {states.currentPage} จาก {derived.totalPages}</span>
-                      <div className="flex items-center gap-2">
-                        <button disabled={states.currentPage === 1} onClick={() => actions.setCurrentPage(Math.max(states.currentPage - 1, 1))} className="px-3 py-1 border rounded disabled:opacity-50">
-                          ก่อนหน้า
-                        </button>
-                        <button disabled={states.currentPage === derived.totalPages} onClick={() => actions.setCurrentPage(Math.min(states.currentPage + 1, derived.totalPages))} className="px-3 py-1 border rounded disabled:opacity-50">
-                          ถัดไป
-                        </button>
+                 {derived.totalPages > 0 && (() => {
+                    let startPage = Math.max(1, states.currentPage - 5);
+                    let endPage = Math.min(derived.totalPages, states.currentPage + 5);
+
+                    if (endPage - startPage < 10) {
+                      if (startPage === 1) {
+                        endPage = Math.min(derived.totalPages, startPage + 10);
+                      } else if (endPage === derived.totalPages) {
+                        startPage = Math.max(1, endPage - 10);
+                      }
+                    }
+
+                    const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+                    return (
+                      <div className="flex flex-col md:flex-row justify-between items-center p-4 border rounded-sm mt-6 shadow-[0_1px_2px_var(--shadow)] bg-(--container) border-(--wrapper) gap-4">
+                        <span className="text-sm font-medium opacity-70">
+                          หน้า {states.currentPage} จาก {derived.totalPages}
+                        </span>
+
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <button
+                            disabled={states.currentPage === 1}
+                            onClick={() => actions.setCurrentPage(1)}
+                            className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
+                            title="หน้าแรกสุด"
+                          >
+                            &laquo;
+                          </button>
+                          <button
+                            disabled={states.currentPage === 1}
+                            onClick={() => actions.setCurrentPage(Math.max(states.currentPage - 1, 1))}
+                            className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
+                            title="ก่อนหน้า"
+                          >
+                            &lsaquo;
+                          </button>
+
+                          <div className="hidden sm:flex items-center gap-1 overflow-x-auto">
+                            {pageNumbers.map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => actions.setCurrentPage(page)}
+                                className={`px-3 py-2 border rounded-sm text-sm font-medium transition cursor-pointer ${
+                                  page === states.currentPage
+                                    ? "bg-(--header) text-background font-bold pointer-events-none border-transparent"
+                                    : "bg-(--button) border-(--wrapper) text-foreground hover:bg-(--row-hover)"
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            disabled={states.currentPage === derived.totalPages}
+                            onClick={() => actions.setCurrentPage(Math.min(states.currentPage + 1, derived.totalPages))}
+                            className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
+                            title="ถัดไป"
+                          >
+                            &rsaquo;
+                          </button>
+                          <button
+                            disabled={states.currentPage === derived.totalPages}
+                            onClick={() => actions.setCurrentPage(derived.totalPages)}
+                            className="px-3 py-2 border rounded-sm disabled:opacity-30 text-sm font-medium transition cursor-pointer bg-(--button) border-(--wrapper) hover:bg-(--row-hover) text-foreground"
+                            title="หน้าท้ายสุด"
+                          >
+                            &raquo;
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                 )}
+                    );
+                 })()}
               </div>
               
             </div>

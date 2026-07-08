@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import MissingTable, { SortField } from "@/components/missing/MissingTable";
 import MissingCard from "@/components/missing/MissingCard";
@@ -81,6 +81,7 @@ const formatValue = (key: string, val: any) => {
 };
 
 function MissingPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
   
@@ -99,8 +100,14 @@ function MissingPageContent() {
   const [isExportMode, setIsExportMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const selectedIds = selectedRows.map(r => r.id);
+
+  useEffect(() => {
+    const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    setIsLoggedIn(!!token && token !== "null");
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -303,7 +310,16 @@ function MissingPageContent() {
                 </>
               ) : (
                 <>
-                  <button onClick={() => setIsExportMode(true)} className="px-4 py-2 bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900 font-bold rounded-sm hover:opacity-90 transition text-sm cursor-pointer">
+                  <button 
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        router.push('/login');
+                        return;
+                      }
+                      setIsExportMode(true);
+                    }} 
+                    className="px-4 py-2 bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900 font-bold rounded-sm hover:opacity-90 transition text-sm cursor-pointer"
+                  >
                     Export
                   </button>
                   <Link href="/missing/create" className="px-4 py-2 bg-(--header) text-background font-bold rounded-sm hover:opacity-90 transition text-sm">
@@ -446,7 +462,7 @@ function MissingPageContent() {
       {isExportMode && selectedRows.length > 0 && (
         <div style={{ position: "absolute", left: "-9999px", top: 0, fontFamily: "'Sarabun', sans-serif" }}>
           {selectedRows.map((person: any) => (
-            <div key={person.id} id={`pdf-card-${person.id}`} style={{ width: "856px", height: "540px", backgroundColor: "white" }}>
+            <div key={person.id} id={`pdf-card-${person.id}`} style={{ width: "856px", minHeight: "540px", height: "max-content", backgroundColor: "white" }}>
               <MissingCard data={person} isExporting={true} />
             </div>
           ))}

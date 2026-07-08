@@ -172,6 +172,125 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
 
   const informantFullNameTh = `${data.informant_first_name_th || ""}${data.informant_middle_name_th ? " " + data.informant_middle_name_th : ""} ${data.informant_last_name_th || ""}`.trim();
 
+  if (isExporting) {
+    return (
+      <ExportContext.Provider value={isExporting}>
+        <div className="relative w-full rounded-[12px] shadow-sm overflow-hidden font-sans flex flex-col text-[#002f6c] mb-6" style={{ minHeight: '520px', backgroundColor: '#eef2f5', border: '1px solid #d1d5db', maxWidth: '800px', margin: '0 auto' }}>
+          
+          <div className="w-full bg-[#0047a5] text-white py-[2%] px-[4%] flex items-center shrink-0">
+            <div className="flex flex-col">
+              <span className="font-bold tracking-wide leading-tight" style={{ fontSize: "26px" }}>
+                บันทึกข้อมูลผู้สูญหาย
+              </span>
+              <span className="opacity-80" style={{ fontSize: "14px" }}>
+                MISSING PERSON RECORD
+              </span>
+            </div>
+            <div className="ml-auto text-right">
+               <span className="font-bold opacity-90" style={{ fontSize: "20px" }}>{data.id_card_passport || data.missing_id_card_passport ? formatNationalId(data.id_card_passport || data.missing_id_card_passport) : "-"}</span>
+            </div>
+          </div>
+
+          <div className="flex p-[4%] flex-1 bg-[#f3f4f6]">
+            
+            <div className="flex flex-col flex-1 pr-[3%] min-w-0 justify-between">
+               <div className="flex gap-2 w-full">
+                 <div className="w-1/2">
+                   <InfoItem label="ชื่อ-นามสกุล / Name (TH)" value={fullNameTh} />
+                 </div>
+                 <div className="w-1/2">
+                   <InfoItem label="Name (EN)" value={fullNameEn} />
+                 </div>
+               </div>
+
+               <div className="flex gap-2 w-full mt-2">
+                 <div className="w-[35%]">
+                   <InfoItem label="เกิดวันที่ / Date of Birth" value={getDobText()} />
+                 </div>
+                 <div className="w-[20%]">
+                   <InfoItem label="เพศ / Sex" value={data.gender} />
+                 </div>
+                 <div className="w-[45%]">
+                   <InfoItem label="หนังสือเดินทาง / Passport No." value={data.passport_number} />
+                 </div>
+               </div>
+
+               <div className="flex gap-2 w-full mt-2">
+                 <div className="w-full">
+                   <div className="flex flex-col items-start min-w-0">
+                     <span className="text-[#0047a5] font-bold" style={{ fontSize: "14px" }}>สัญชาติ / Nationality</span>
+                     <div className="flex items-center gap-1.5 mt-0.5">
+                       {flagUrl && <img src={flagUrl} alt="flag" crossOrigin="anonymous" className="w-5 h-3.5 object-cover rounded-[2px] shadow-sm" />}
+                       <span className="font-bold text-[#002f6c] truncate" style={{ fontSize: "16px" }}>{data.nationality || "-"}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+               
+               <div className="flex gap-2 w-full mt-2">
+                 <div className="w-full">
+                   <InfoItem label="สถานที่พบตัว / Found Location" value={getLocationText()} />
+                 </div>
+               </div>
+
+               <div className="flex gap-2 w-full mt-2">
+                 <div className="w-full flex flex-col items-start min-w-0">
+                    <span className="text-[#0047a5] font-bold mb-0.5" style={{ fontSize: "14px" }}>สถานะผู้เสียหาย / Victim Status</span>
+                    <span className={`font-bold px-2 py-0.5 rounded text-center border ${victimColorClass}`} style={{ fontSize: "15px" }}>
+                      {victimStatusStr}
+                    </span>
+                 </div>
+               </div>
+               
+               {/* ข้อมูลเพิ่มเติม (Additional Info) */}
+               <div className="flex gap-2 w-full mt-2 shrink-0 pb-1">
+                 <div className="w-full flex flex-col items-start min-w-0">
+                    <span className="text-[#0047a5] font-bold mb-0.5" style={{ fontSize: "14px" }}>ข้อมูลเพิ่มเติม / Additional Info</span>
+                    <div className="text-[#002f6c] w-full" style={{ fontSize: "14px", lineHeight: "1.3" }}>
+                      <div className="flex flex-col gap-y-1 w-full">
+                        <div className="flex gap-2">
+                          <div className="truncate flex-1"><span className="font-bold">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
+                          <div className="truncate flex-1"><span className="font-bold">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="truncate flex-1"><span className="font-bold">สน.ที่รับแจ้ง:</span> {data.police_station || "-"}</div>
+                          <div className="truncate flex-1"><span className="font-bold">ผู้แจ้ง:</span> {informantFullNameTh || "-"} {data.informant_relation ? `(${data.informant_relation})` : ""}</div>
+                        </div>
+                        <div className="truncate w-full"><span className="font-bold">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
+                      </div>
+                    </div>
+                 </div>
+               </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-start shrink-0 w-[22%] h-full">
+               <div className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[6px] overflow-hidden flex items-center justify-center relative shadow-sm" style={{ aspectRatio: "3/4" }}>
+                  {data.photo_url ? (
+                     <Base64Image 
+                       src={getDirectImageUrl(data.photo_url, data.id || data.missing_person_id || Math.random().toString())} 
+                       alt="Profile" 
+                       className="w-full h-full object-cover relative z-10" 
+                       referrerPolicy="no-referrer"
+                       crossOrigin="anonymous"
+                     />
+                  ) : (
+                     <div className="flex flex-col items-center justify-center w-full h-full relative z-10 bg-[#eef6fc]">
+                       <img src={"/return.png"} className="opacity-40 w-[60%]" alt="Placeholder"></img>
+                     </div>
+                  )}
+               </div>
+
+               <div className="w-full text-center mt-auto pt-2 shrink-0">
+                 <div className="text-[#0047a5] font-bold leading-tight" style={{ fontSize: "15px" }}>วันที่พบตัว / Date</div>
+                 <div className="text-[#002f6c] font-bold mt-1" style={{ fontSize: "18px" }}>{dateValue}</div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </ExportContext.Provider>
+    );
+  }
+
   return (
     <ExportContext.Provider value={isExporting}>
       <div className="relative w-full bg-[#DFF5EC] rounded-2xl border border-[#9DD8BE] shadow-md overflow-hidden font-sans pt-[6%] mb-6" style={{ aspectRatio: "856 / 540" }}>
@@ -275,7 +394,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
           </div>
 
           {/* ป้ายสถานะผู้เสียหาย (ไม่มี Emoji) */}
-          <span className={`w-full text-center ${victimColorClass} font-bold border rounded-full px-2 py-1 mb-[5%] flex items-center justify-center`} style={{ fontSize: isExporting ? "11px" : "clamp(8px, 1.1vw, 12px)" }}>
+          <span className={`w-full text-center ${victimColorClass} font-bold border rounded-full px-2 py-1 mb-[5%] flex items-center justify-center`} style={{ fontSize: isExporting ? "16px" : "clamp(8px, 1.1vw, 12px)" }}>
             <span>{victimStatusStr}</span>
           </span>
 
@@ -294,13 +413,28 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
 
 function ILabel({ children, className = "" }: { children: React.ReactNode; className?: string; }) {
   const isExporting = useContext(ExportContext);
-  return <span className={`font-bold text-[#022c22] block mb-0.5 ${className}`} style={{ fontSize: isExporting ? "10px" : "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
+  return <span className={`font-bold text-[#022c22] block mb-0.5 ${className}`} style={{ fontSize: isExporting ? "14px" : "clamp(5px, 1.2vw, 11px)" }}>{children}</span>;
+}
+
+function InfoItem({ label, value, colorClass }: { label: string; value?: string | number | null; colorClass?: string; }) {
+  const isExporting = useContext(ExportContext);
+  return (
+    <div className="flex flex-col items-start min-w-0">
+      <span className="text-[#0047a5] font-bold" style={{ fontSize: isExporting ? "14px" : "14px" }}>{label}</span>
+      <span 
+        className={`font-bold mt-0.5 leading-normal ${colorClass ? colorClass + ' px-2 py-0.5 rounded text-center border' : 'text-[#002f6c] truncate w-full'}`} 
+        style={{ fontSize: isExporting ? "16px" : "16px", display: colorClass ? "inline-block" : "block", wordBreak: colorClass ? "break-word" : "normal", whiteSpace: colorClass ? "normal" : "nowrap" }}
+      >
+        {value || "-"}
+      </span>
+    </div>
+  );
 }
 
 function IBox({ children, mono = false, noTruncate = false, className = "" }: { children: React.ReactNode; mono?: boolean; noTruncate?: boolean; className?: string; }) {
   const isExporting = useContext(ExportContext);
   return (
-    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: isExporting ? "11px" : "clamp(6px, 1.3vw, 12px)", padding: isExporting ? "6px 10px" : "0.6em 0.8em", lineHeight: 1.5 }}>
+    <div className={`bg-[#B8E8D4] rounded-md text-[#064e3b] font-medium ${mono ? "font-mono tracking-tight" : ""} ${noTruncate ? "flex flex-col justify-center" : "truncate"} ${className}`} style={{ fontSize: isExporting ? "16px" : "clamp(6px, 1.3vw, 12px)", padding: isExporting ? "6px 10px" : "0.6em 0.8em", lineHeight: 1.5 }}>
       {children}
     </div>
   );
