@@ -221,7 +221,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
                      <span className="text-[#0047a5] font-bold" style={{ fontSize: "14px" }}>สัญชาติ / Nationality</span>
                      <div className="flex items-center gap-1.5 mt-0.5">
                        {flagUrl && <img src={flagUrl} alt="flag" crossOrigin="anonymous" className="w-5 h-3.5 object-cover rounded-[2px] shadow-sm" />}
-                       <span className="font-bold text-[#002f6c] truncate" style={{ fontSize: "16px" }}>{data.nationality || "-"}</span>
+                       <span className="font-bold text-[#002f6c] break-words whitespace-normal" style={{ fontSize: "16px" }}>{data.nationality || "-"}</span>
                      </div>
                    </div>
                  </div>
@@ -246,17 +246,17 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
                <div className="flex gap-2 w-full mt-2 shrink-0 pb-1">
                  <div className="w-full flex flex-col items-start min-w-0">
                     <span className="text-[#0047a5] font-bold mb-0.5" style={{ fontSize: "14px" }}>ข้อมูลเพิ่มเติม / Additional Info</span>
-                    <div className="text-[#002f6c] w-full" style={{ fontSize: "14px", lineHeight: "1.3" }}>
+                    <div className="text-[#002f6c] w-full" style={{ fontSize: "14px", lineHeight: "1.4" }}>
                       <div className="flex flex-col gap-y-1 w-full">
-                        <div className="flex gap-2">
-                          <div className="truncate flex-1"><span className="font-bold">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
-                          <div className="truncate flex-1"><span className="font-bold">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
+                        <div className="flex gap-2 w-full">
+                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
+                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
                         </div>
-                        <div className="flex gap-2">
-                          <div className="truncate flex-1"><span className="font-bold">สน.ที่รับแจ้ง:</span> {data.police_station || "-"}</div>
-                          <div className="truncate flex-1"><span className="font-bold">ผู้แจ้ง:</span> {informantFullNameTh || "-"} {data.informant_relation ? `(${data.informant_relation})` : ""}</div>
+                        <div className="flex gap-2 w-full">
+                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">สน./สภ.ที่รับแจ้ง:</span> {data.station || data.police_station || "-"}</div>
+                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">ผู้แจ้ง:</span> {informantFullNameTh || "-"} {data.informant_relation ? `(${data.informant_relation})` : ""}</div>
                         </div>
-                        <div className="truncate w-full"><span className="font-bold">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
+                        <div className="break-words whitespace-normal w-full"><span className="font-bold">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
                       </div>
                     </div>
                  </div>
@@ -366,7 +366,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
               <div className="flex flex-col gap-y-1.5 w-full" style={{ fontSize: "0.95em" }}>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">สน.ที่รับแจ้ง:</span> {data.police_station || "-"}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">สน./สภ.ที่รับแจ้ง:</span> {data.station || data.police_station || "-"}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">ผู้แจ้ง:</span> {informantFullNameTh || "ไม่ระบุ"} (โทร: {data.informant_phone || "-"}, ความเกี่ยวข้อง: {data.relationship || "-"})</div>
               </div>
@@ -419,11 +419,11 @@ function ILabel({ children, className = "" }: { children: React.ReactNode; class
 function InfoItem({ label, value, colorClass }: { label: string; value?: string | number | null; colorClass?: string; }) {
   const isExporting = useContext(ExportContext);
   return (
-    <div className="flex flex-col items-start min-w-0">
+    <div className="flex flex-col items-start min-w-0 w-full">
       <span className="text-[#0047a5] font-bold" style={{ fontSize: isExporting ? "14px" : "14px" }}>{label}</span>
       <span 
-        className={`font-bold mt-0.5 leading-normal ${colorClass ? colorClass + ' px-2 py-0.5 rounded text-center border' : 'text-[#002f6c] truncate w-full'}`} 
-        style={{ fontSize: isExporting ? "16px" : "16px", display: colorClass ? "inline-block" : "block", wordBreak: colorClass ? "break-word" : "normal", whiteSpace: colorClass ? "normal" : "nowrap" }}
+        className={`font-bold mt-0.5 leading-normal ${colorClass ? colorClass + ' px-2 py-0.5 rounded text-center border' : 'text-[#002f6c] break-words whitespace-normal w-full'}`} 
+        style={{ fontSize: isExporting ? "16px" : "16px", display: colorClass ? "inline-block" : "block", wordBreak: "break-word" }}
       >
         {value || "-"}
       </span>
