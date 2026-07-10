@@ -248,6 +248,7 @@ export default function CreateMissingPerson() {
               )}
             </div>
           </div>
+          </div>
           <div>
             <h3 className="text-lg font-bold mb-4 !text-black dark:!text-white">รูปถ่ายหนังสือเดินทาง (ถ้ามี)</h3>
             <div className="flex flex-col items-start gap-4">
@@ -269,6 +270,7 @@ export default function CreateMissingPerson() {
                 </button>
               )}
             </div>
+          </div>
           </div>
         </div>
 
