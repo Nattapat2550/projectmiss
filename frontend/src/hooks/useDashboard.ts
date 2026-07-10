@@ -10,6 +10,7 @@ export interface DashboardData {
     nationality?: { name: string; value: number; color?: string }[]; 
     gender?: { name: string; value: number; color?: string }[]; 
     province?: { name: string; value: number; color?: string }[];
+    region?: { name: string; value: number; color?: string }[];
     ageGroup?: { name: string; value: number; color?: string }[];
     humanTrafficking?: { name: string; value: number; color?: string }[];
     status?: { name: string; value: number; color?: string }[];
@@ -17,7 +18,7 @@ export interface DashboardData {
     divisionName?: { name: string; value: number; color?: string }[];
     reportedDateTrend?: { name: string; value: number; color?: string }[];
   };
-  meta: { totalItems: number; totalPages: number; currentPage: number; allNationalities: string[]; allGenders: string[]; allProvinces: string[]; };
+  meta: { totalItems: number; totalPages: number; currentPage: number; allNationalities: string[]; allGenders: string[]; allProvinces: string[]; allRegions?: string[]; };
   tableData: any[];
 }
 
@@ -41,6 +42,7 @@ export function useDashboard() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [filterProvince, setFilterProvince] = useState<string>("ทั้งหมด");
+  const [filterRegion, setFilterRegion] = useState<string>("ทั้งหมด");
   const [filterAge, setFilterAge] = useState<string>("ทั้งหมด");
   const [filterTrafficking, setFilterTrafficking] = useState<string>("ทั้งหมด");
   const [filterStatus, setFilterStatus] = useState<string>("ทั้งหมด");
@@ -63,6 +65,7 @@ export function useDashboard() {
       gender: filterGender,
       startDate, endDate,
       province: filterProvince,
+      region: filterRegion,
       ageGroup: filterAge,
       human_trafficking: filterTrafficking,
       status: filterStatus,
@@ -104,7 +107,7 @@ export function useDashboard() {
       });
     return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterNat, filterGender, startDate, endDate, filterProvince, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, currentPage, sortField, sortDirection]);
+  }, [filterNat, filterGender, startDate, endDate, filterProvince, filterRegion, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, currentPage, sortField, sortDirection]);
 
   const handleFilterChange = (setter: Function, value: any) => { setter(value); setCurrentPage(1); };
   const handleSort = (field: string) => {
@@ -114,12 +117,13 @@ export function useDashboard() {
   };
   const resetFilters = () => {
     setFilterNat("ทั้งหมด"); setFilterGender("ทั้งหมด"); 
-    setStartDate(""); setEndDate(""); setFilterProvince("ทั้งหมด"); setFilterAge("ทั้งหมด"); setFilterTrafficking("ทั้งหมด"); setFilterStatus("ทั้งหมด"); setFilterCommandCenter("ทั้งหมด"); setFilterDivisionName("ทั้งหมด"); setSortField(""); setCurrentPage(1);
+    setStartDate(""); setEndDate(""); setFilterProvince("ทั้งหมด"); setFilterRegion("ทั้งหมด"); setFilterAge("ทั้งหมด"); setFilterTrafficking("ทั้งหมด"); setFilterStatus("ทั้งหมด"); setFilterCommandCenter("ทั้งหมด"); setFilterDivisionName("ทั้งหมด"); setSortField(""); setCurrentPage(1);
   };
 
   const nationalitiesOptions = dashboardData?.meta?.allNationalities || ["ทั้งหมด"];
   const gendersOptions = Array.from(new Set(["ทั้งหมด", "ชาย", "หญิง", "ไม่ระบุ", ...(dashboardData?.meta?.allGenders || [])]));
   const provinceOptions = Array.from(new Set(["ทั้งหมด", "ไม่ระบุ", ...(dashboardData?.meta?.allProvinces || [])]));
+  const regionsOptions = Array.from(new Set(["ทั้งหมด", "ไม่ระบุ", ...(dashboardData?.meta?.allRegions || [])]));
   const ageOptions = ["ทั้งหมด", "0-18 ปี", "19-30 ปี", "31-50 ปี", "51 ปีขึ้นไป", "ไม่ระบุ"];
   const traffickingOptions = ["ทั้งหมด", "มีข้อบ่งชี้", "ไม่มีข้อบ่งชี้"];
   const statusOptions = ["ทั้งหมด", "พบตัวแล้ว", "ยังไม่พบตัว"];
@@ -147,6 +151,7 @@ export function useDashboard() {
   const natChart = formatStandardChartData(dashboardData?.charts?.nationality, dashboardData?.stats?.total, 0);
   const genderChart = formatStandardChartData(dashboardData?.charts?.gender, dashboardData?.stats?.total, 2);
   const provinceChart = formatStandardChartData(dashboardData?.charts?.province, dashboardData?.stats?.total, 3);
+  const regionChart = formatStandardChartData(dashboardData?.charts?.region, dashboardData?.stats?.total, 5);
   const ageChart = formatStandardChartData(dashboardData?.charts?.ageGroup, dashboardData?.stats?.total, 4);
   const traffickingChart = formatStandardChartData(dashboardData?.charts?.humanTrafficking, dashboardData?.stats?.total, 5);
   const statusChart = formatStandardChartData(dashboardData?.charts?.status, dashboardData?.stats?.total, 1);
@@ -156,8 +161,8 @@ export function useDashboard() {
   const divisionNameChart = formatStandardChartData(dashboardData?.charts?.divisionName, dashboardData?.stats?.total, 1);
 
   return {
-    states: { filterNat, filterGender, filterProvince, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, startDate, endDate, currentPage, sortField, sortDirection, loading, isUpdating, dashboardData },
-    actions: { handleFilterChange, handleSort, resetFilters, setCurrentPage, setFilterNat, setFilterGender, setStartDate, setEndDate, setFilterProvince, setFilterAge, setFilterTrafficking, setFilterStatus, setFilterCommandCenter, setFilterDivisionName },
-    derived: { nationalitiesOptions, gendersOptions, provinceOptions, ageOptions, traffickingOptions, statusOptions, commandCenterOptions, divisionOptions, provinceChart, ageChart, traffickingChart, statusChart, reportedDateChart, tableRows, stats, natChart, genderChart, commandCenterChart, divisionNameChart, totalPages: dashboardData?.meta?.totalPages || 1, totalItems: dashboardData?.meta?.totalItems || 0 }
+    states: { filterNat, filterGender, filterProvince, filterRegion, filterAge, filterTrafficking, filterStatus, filterCommandCenter, filterDivisionName, startDate, endDate, currentPage, sortField, sortDirection, loading, isUpdating, dashboardData },
+    actions: { handleFilterChange, handleSort, resetFilters, setCurrentPage, setFilterNat, setFilterGender, setStartDate, setEndDate, setFilterProvince, setFilterRegion, setFilterAge, setFilterTrafficking, setFilterStatus, setFilterCommandCenter, setFilterDivisionName },
+    derived: { nationalitiesOptions, gendersOptions, provinceOptions, regionsOptions, ageOptions, traffickingOptions, statusOptions, commandCenterOptions, divisionOptions, provinceChart, regionChart, ageChart, traffickingChart, statusChart, reportedDateChart, tableRows, stats, natChart, genderChart, commandCenterChart, divisionNameChart, totalPages: dashboardData?.meta?.totalPages || 1, totalItems: dashboardData?.meta?.totalItems || 0 }
   };
 }

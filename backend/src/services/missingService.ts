@@ -1,5 +1,6 @@
 import pool from "../config/db";
 import {  uploadWithRetry, validateLen, parseDateForDB  } from "../utils/uploadHelpers";
+import { getRegionFromProvince } from "../utils/regionMapper";
 
 export const fetchMissingPersons = async (params) => {
     const { page = 1, limit = 50, sortBy, sortOrder = "desc", search, command_center, division_name } = params;
@@ -42,6 +43,7 @@ export const fetchMissingPersons = async (params) => {
                 OR c.detected_location_sub_district ILIKE $${paramIndex}
                 OR c.detected_location_district ILIKE $${paramIndex}
                 OR c.detected_location_province ILIKE $${paramIndex}
+                OR c.detected_location_region ILIKE $${paramIndex}
                 OR a.command_center ILIKE $${paramIndex}
                 OR a.division_name ILIKE $${paramIndex}
                 OR a.station ILIKE $${paramIndex}
@@ -85,7 +87,7 @@ export const fetchMissingPersons = async (params) => {
             mp.missing_person_id, mp.first_name_th, mp.middle_name_th, mp.last_name_th, mp.first_name_en, mp.middle_name_en, mp.last_name_en,
             EXTRACT(YEAR FROM age(CURRENT_DATE, mp.date_of_birth)) as age, mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.missing_date, c.missing_time, c.detected_location_details,
-            c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
+            c.detected_location_sub_district, c.detected_location_district, c.detected_location_province, c.detected_location_region,
             c.photo_url, c.passport_photo_url, c.found_date, c.reported_date, c.case_number, c.operation_result,
             c.incident_summary, c.human_trafficking_indicators, c.notes,
             c.pjv_number, c.pjv_file_url, c.victim_classification, c.human_trafficking_type, c.investigating_id,
@@ -282,13 +284,13 @@ const createMissingPersonRecord = async (data, file, passportFile, pjvFile) => {
             INSERT INTO cases (
                 missing_person_id, informant_id, 
                 missing_date, missing_time, detected_location_details,
-                detected_location_sub_district, detected_location_district, detected_location_province,
+                detected_location_sub_district, detected_location_district, detected_location_province, detected_location_region,
                 incident_summary, human_trafficking_indicators,
                 notes, photo_url, passport_photo_url, entry_channel, entry_checkpoint_province, airline, entry_date,
                 investigating_id, reported_date, receiving_channel, case_number, pjv_number,
                 pjv_file_url, operation_result, found_date, victim_classification,
                 human_trafficking_type, action_taken
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
             RETURNING case_id
         `;
         await client.query(caseQuery, [
@@ -300,6 +302,7 @@ const createMissingPersonRecord = async (data, file, passportFile, pjvFile) => {
             detected_location_sub_district || null,
             detected_location_district || null,
             detected_location_province || null,
+            getRegionFromProvince(detected_location_province),
             incident_summary || null,
             human_trafficking_indicators === "true" || human_trafficking_indicators === true,
             notes || null,
@@ -339,7 +342,7 @@ const fetchMissingPersonById = async (id) => {
             mp.first_name_en AS missing_first_name_en, mp.last_name_en AS missing_last_name_en,
             mp.date_of_birth, mp.gender, mp.nationality, mp.passport_number, mp.missing_id_card_passport,
             c.case_id, c.relationship, c.entry_channel, c.entry_checkpoint_province, c.airline, c.entry_date,
-            c.detected_location_details, c.detected_location_sub_district, c.detected_location_district, c.detected_location_province,
+            c.detected_location_details, c.detected_location_sub_district, c.detected_location_district, c.detected_location_province, c.detected_location_region,
             c.missing_date, c.missing_time, c.photo_url, c.passport_photo_url, c.investigating_id, c.reported_date, c.receiving_channel,
             c.incident_summary, c.case_number, c.pjv_number, c.pjv_file_url, c.human_trafficking_indicators,
             c.victim_classification, c.human_trafficking_type, c.action_taken, c.operation_result,
@@ -484,17 +487,17 @@ const updateMissingPersonRecord = async (id, data, file, passportFile, pjvFile) 
         let caseUpdateQuery = `
             UPDATE cases
             SET missing_date = $1, missing_time = $2, detected_location_details = $3,
-                detected_location_sub_district = $4, detected_location_district = $5, detected_location_province = $6,
-                incident_summary = $7, human_trafficking_indicators = $8, notes = $9,
-                case_number = $10, pjv_number = $11, investigating_id = $12, operation_result = $13,
-                found_date = $14, reported_date = $15, relationship = $16,
-                entry_channel = $17, entry_checkpoint_province = $18, airline = $19, entry_date = $20,
-                receiving_channel = $21, pjv_file_url = $22, victim_classification = $23,
-                human_trafficking_type = $24, action_taken = $25
+                detected_location_sub_district = $4, detected_location_district = $5, detected_location_province = $6, detected_location_region = $7,
+                incident_summary = $8, human_trafficking_indicators = $9, notes = $10,
+                case_number = $11, pjv_number = $12, investigating_id = $13, operation_result = $14,
+                found_date = $15, reported_date = $16, relationship = $17,
+                entry_channel = $18, entry_checkpoint_province = $19, airline = $20, entry_date = $21,
+                receiving_channel = $22, pjv_file_url = $23, victim_classification = $24,
+                human_trafficking_type = $25, action_taken = $26
         `;
         let caseParams = [
             parseMissingDate, missing_time, detected_location_details,
-            detected_location_sub_district, detected_location_district, detected_location_province,
+            detected_location_sub_district, detected_location_district, detected_location_province, getRegionFromProvince(detected_location_province),
             incident_summary, human_trafficking_indicators, notes,
             case_number, pjv_number, agency_id, operation_result,
             parseFoundDate, parseReportedDate, relationship,
@@ -503,7 +506,7 @@ const updateMissingPersonRecord = async (id, data, file, passportFile, pjvFile) 
             human_trafficking_type, action_taken
         ];
 
-        let paramIndex = 26;
+        let paramIndex = 27;
         if (drivePhotoUrl) {
             caseUpdateQuery += `, photo_url = $${paramIndex++}`;
             caseParams.push(drivePhotoUrl);

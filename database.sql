@@ -72,6 +72,7 @@ CREATE TABLE cases (
     detected_location_sub_district VARCHAR(255),
     detected_location_district VARCHAR(255),
     detected_location_province VARCHAR(255),
+    detected_location_region VARCHAR(255),
     missing_date DATE,                     -- วันที่สูญหาย หรือ คาดว่าสูญหาย
     missing_time TIME,                     -- เวลาสูญหาย หรือ คาดว่าสูญหาย
     photo_url TEXT,                        -- รูปภาพ (เก็บเป็น URL Link ไปยัง Object Storage)

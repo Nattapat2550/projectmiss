@@ -26,7 +26,7 @@ function DashboardContent() {
     if (cookieVal) {
       setVisibleCharts(cookieVal.split(",").filter(Boolean));
     } else {
-      setVisibleCharts(["nationality", "gender", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"]);
+      setVisibleCharts(["nationality", "gender", "region", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"]);
     }
   }, []);
 
@@ -71,6 +71,13 @@ function DashboardContent() {
 
           
           <div className="flex flex-col gap-2 mt-2">
+            <label className="text-sm font-bold text-(--header) opacity-70">ภาค</label>
+            <select value={states.filterRegion} onChange={(e) => actions.handleFilterChange(actions.setFilterRegion, e.target.value)} className={inputClass}>
+              {derived.regionsOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-(--header) opacity-70">จังหวัด</label>
             <select value={states.filterProvince} onChange={(e) => actions.handleFilterChange(actions.setFilterProvince, e.target.value)} className={inputClass}>
               {derived.provinceOptions.map((n: string) => <option key={n} value={n}>{n}</option>)}
@@ -177,6 +184,7 @@ function DashboardContent() {
                     {(!visibleCharts.length || visibleCharts.includes("nationality")) && derived.natChart.length > 0 && <BarChart data={derived.natChart} title="สัญชาติ (Top 6)" />}
                     {(!visibleCharts.length || visibleCharts.includes("gender")) && derived.genderChart.length > 0 && <BarChart data={derived.genderChart} title="เพศ" />}
 
+                    {(!visibleCharts.length || visibleCharts.includes("region")) && derived.regionChart && derived.regionChart.length > 0 && <BarChart data={derived.regionChart} title="ภาคที่สูญหาย" />}
                     {(!visibleCharts.length || visibleCharts.includes("province")) && derived.provinceChart && derived.provinceChart.length > 0 && <BarChart data={derived.provinceChart} title="จังหวัดที่สูญหาย (Top 6)" />}
                     {(!visibleCharts.length || visibleCharts.includes("commandCenter")) && derived.commandCenterChart && derived.commandCenterChart.length > 0 && <BarChart data={derived.commandCenterChart} title="กองบัญชาการ (Top 6)" />}
                     {(!visibleCharts.length || visibleCharts.includes("divisionName")) && derived.divisionNameChart && derived.divisionNameChart.length > 0 && <BarChart data={derived.divisionNameChart} title="กองบังคับการ (Top 6)" />}
@@ -312,6 +320,10 @@ function DashboardContent() {
                   </label>
 
                   <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
+                    <input type="checkbox" checked={visibleCharts.includes("region")} onChange={() => toggleChart("region")} className="w-4 h-4 accent-(--blueText)" />
+                    ภาคที่สูญหาย
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-semibold text-(--header) cursor-pointer select-none">
                     <input type="checkbox" checked={visibleCharts.includes("province")} onChange={() => toggleChart("province")} className="w-4 h-4 accent-(--blueText)" />
                     จังหวัดที่สูญหาย
                   </label>
@@ -343,7 +355,7 @@ function DashboardContent() {
 
                 <div className="flex justify-end gap-2 mt-2">
                   <button 
-                    onClick={() => saveVisibleCharts(["nationality", "gender", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"])} 
+                    onClick={() => saveVisibleCharts(["nationality", "gender", "region", "province", "commandCenter", "divisionName", "reportedDate", "ageGroup", "trafficking", "status"])} 
                     className="px-3.5 py-1.5 bg-zinc-200 dark:bg-zinc-800 text-sm font-bold text-(--header) hover:opacity-80 transition rounded cursor-pointer select-none"
                   >
                     แสดงผลทั้งหมด

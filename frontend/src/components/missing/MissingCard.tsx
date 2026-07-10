@@ -136,6 +136,20 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
   const lNameEn = data.missing_last_name_en || data.last_name_en || "";
   const fullNameEn = fNameEn ? `${fNameEn}${mNameEn ? " " + mNameEn : ""} ${lNameEn}`.trim() : "";
 
+  const formatStation = (station: string, province: string, commandCenter: string) => {
+    if (!station || station === "-") return "-";
+    const str = station.trim();
+    if (str.startsWith("สน.") || str.startsWith("สภ.") || str.startsWith("สถานีตำรวจ")) {
+      return str;
+    }
+    if (commandCenter === "บช.น." || province === "กรุงเทพมหานคร" || province === "กรุงเทพฯ" || province === "กทม.") {
+      return `สน.${str}`;
+    }
+    return `สภ.${str}`;
+  };
+
+  const stationValue = formatStation(data.station || data.police_station, data.detected_location_province, data.command_center);
+
   const dateValue = formatDate(data.found_date);
 
   const getDobText = () => {
@@ -253,7 +267,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
                           <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
                         </div>
                         <div className="flex gap-2 w-full">
-                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">สน./สภ.ที่รับแจ้ง:</span> {data.station || data.police_station || "-"}</div>
+                          <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">สน./สภ.ที่รับแจ้ง:</span> {stationValue}</div>
                           <div className="break-words whitespace-normal flex-1 min-w-0"><span className="font-bold">ผู้แจ้ง:</span> {informantFullNameTh || "-"} {data.informant_relation ? `(${data.informant_relation})` : ""}</div>
                         </div>
                         <div className="break-words whitespace-normal w-full"><span className="font-bold">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
@@ -366,7 +380,7 @@ export default function MissingCard({ data, isExporting = false }: MissingCardPr
               <div className="flex flex-col gap-y-1.5 w-full" style={{ fontSize: "0.95em" }}>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">วันที่สูญหาย:</span> {formatDate(data.missing_date)} {data.missing_time ? `เวลา ${data.missing_time}` : ""}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">รับแจ้งเมื่อ:</span> {formatDate(data.reported_date)}</div>
-                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">สน./สภ.ที่รับแจ้ง:</span> {data.station || data.police_station || "-"}</div>
+                <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">สน./สภ.ที่รับแจ้ง:</span> {stationValue}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">พฤติการณ์:</span> {data.incident_summary || "-"}</div>
                 <div className="wrap-break-word"><span className="font-semibold text-[#022c22]">ผู้แจ้ง:</span> {informantFullNameTh || "ไม่ระบุ"} (โทร: {data.informant_phone || "-"}, ความเกี่ยวข้อง: {data.relationship || "-"})</div>
               </div>

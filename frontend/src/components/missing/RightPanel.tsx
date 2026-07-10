@@ -122,6 +122,20 @@ export default function RightPanel({ data, note, setNote, onEditClick }: RightPa
     return new Date(dateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const formatStation = (station: string, province: string, commandCenter: string) => {
+    if (!station || station === "-") return "-";
+    const str = station.trim();
+    if (str.startsWith("สน.") || str.startsWith("สภ.") || str.startsWith("สถานีตำรวจ")) {
+      return str;
+    }
+    if (commandCenter === "บช.น." || province === "กรุงเทพมหานคร" || province === "กรุงเทพฯ" || province === "กทม.") {
+      return `สน.${str}`;
+    }
+    return `สภ.${str}`;
+  };
+
+  const stationValue = formatStation(data.station || data.police_station, data.detected_location_province, data.command_center);
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="bg-(--container) border border-(--wrapper) rounded-2xl p-6 shadow-sm transition-colors">
@@ -140,7 +154,7 @@ export default function RightPanel({ data, note, setNote, onEditClick }: RightPa
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">
             <span className="font-bold text-foreground dark:text-slate-300">สถานีตำรวจ</span>
-            <span className="font-semibold">{data.station || "-"}</span>
+            <span className="font-semibold">{stationValue}</span>
           </div>
 
           <div className="flex justify-between items-center text-sm border-b border-(--wrapper) pb-2">

@@ -24,6 +24,7 @@ export const getDashboardStats = async (req, res) => {
       startDate: rawStartDate, 
       endDate: rawEndDate,
       province = "ทั้งหมด",
+      region = "ทั้งหมด",
       ageGroup = "ทั้งหมด",
       human_trafficking = "ทั้งหมด",
       status = "ทั้งหมด",
@@ -96,6 +97,15 @@ export const getDashboardStats = async (req, res) => {
       } else {
         conditions.push(`c.detected_location_province = $${paramIndex}`);
         queryParams.push(province);
+        paramIndex++;
+      }
+    }
+    if (region && region !== "ทั้งหมด") {
+      if (region === "ไม่ระบุ") {
+        conditions.push(`(c.detected_location_region IS NULL OR TRIM(c.detected_location_region) = '' OR c.detected_location_region = 'ไม่ระบุ')`);
+      } else {
+        conditions.push(`c.detected_location_region = $${paramIndex}`);
+        queryParams.push(region);
         paramIndex++;
       }
     }
@@ -230,6 +240,11 @@ export const getDashboardStats = async (req, res) => {
     const provinceChartRes = await pool.query(provinceChartQuery, baseParams);
     charts.province = provinceChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
 
+    // กราฟภาค
+    const regionChartQuery = `SELECT COALESCE(NULLIF(TRIM(c.detected_location_region), ''), 'ไม่ระบุ') as name, COUNT(*) as value FROM missing_persons mp LEFT JOIN cases c ON mp.missing_person_id = c.missing_person_id LEFT JOIN agencies a ON c.investigating_id = a.agency_id ${baseWhere} GROUP BY 1 ORDER BY value DESC LIMIT 6`;
+    const regionChartRes = await pool.query(regionChartQuery, baseParams);
+    charts.region = regionChartRes.rows.map(r => ({ name: r.name, value: parseInt(r.value) }));
+
     // กราฟช่วงอายุ
     const ageChartQuery = `
       SELECT 
@@ -280,6 +295,7 @@ export const getDashboardStats = async (req, res) => {
     let allNatsRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(nationality), ''), 'ไม่ระบุ') as nat FROM missing_persons ORDER BY nat`);
     const allGendersRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(gender), ''), 'ไม่ระบุ') as gen FROM missing_persons ORDER BY gen`);
     const allProvincesRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(detected_location_province), ''), 'ไม่ระบุ') as prov FROM cases ORDER BY prov`);
+    const allRegionsRes = await pool.query(`SELECT DISTINCT COALESCE(NULLIF(TRIM(detected_location_region), ''), 'ไม่ระบุ') as reg FROM cases ORDER BY reg`);
     
     const responseData = {
       success: true,
@@ -290,6 +306,7 @@ export const getDashboardStats = async (req, res) => {
         allNationalities: ["ทั้งหมด", ...allNatsRes.rows.map(r => r.nat)],
         allGenders: ["ทั้งหมด", ...allGendersRes.rows.map(r => r.gen)],
         allProvinces: ["ทั้งหมด", ...allProvincesRes.rows.map(r => r.prov)],
+        allRegions: ["ทั้งหมด", ...allRegionsRes.rows.map(r => r.reg)],
         allCreators: ["ทั้งหมด"] // ปลอมไว้ก่อน
       },
       stats,

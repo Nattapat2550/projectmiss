@@ -1,8 +1,8 @@
 import xlsx from "xlsx";
 import ExcelJS from "exceljs";
 import pool from "../config/db";
-import {  processName, normalizeNationality, determineGender  } from "../utils/missingHelpers";
-import {  
+import { processName, normalizeNationality, determineGender } from "../utils/missingHelpers";
+import { 
     splitThaiAddress, 
     validateLen, 
     formatExcelDate, 
@@ -14,6 +14,7 @@ import {
     limitConcurrency
  } from "../utils/uploadHelpers";
 import { fuzzyMatchCommandCenter, fuzzyMatchDivision } from "../utils/fuzzyMatchAgency";
+import { getRegionFromProvince } from "../utils/regionMapper";
 import * as cache from "../utils/cache";
 
 const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
@@ -198,9 +199,9 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
             missing_date: formatExcelDate(getVal(row, ["วันที่สูญหาย หรือ คาดว่าสูญหาย", "วันที่หาย", "วันที่พบเห็นครั้งสุดท้าย"])),
             missing_time: formatExcelTime(getVal(row, ["เวลาสูญหาย หรือ คาดว่าสูญหาย", "เวลาสูญหาย"])),
             detected_location_details: parsedLocation.details,
-            detected_location_sub_district: parsedLocation.sub_district,
-            detected_location_district: parsedLocation.district,
-            detected_location_province: parsedLocation.province,
+            detected_location_sub_district: parsedLocation.sub_district || getVal(row, ["ตำบล", "แขวง"]),
+            detected_location_district: parsedLocation.district || getVal(row, ["อำเภอ", "เขต"]),
+            detected_location_province: parsedLocation.province || getVal(row, ["จังหวัด"]),
             entry_channel: getVal(row, ["ช่องทางที่เดินทางเข้ามาในราชอาณาจักร"]),
             entry_checkpoint: getVal(row, ["ชื่อด่านและจังหวัดที่เดินทางเข้า"]),
             airline: getVal(row, ["สายการบิน (ถ้ามี)"]),
@@ -382,7 +383,7 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     INSERT INTO cases (
                         agency_id, informant_id, missing_person_id, relationship,
                         entry_channel, entry_checkpoint_province, airline, entry_date, 
-                        detected_location_details, detected_location_sub_district, detected_location_district, detected_location_province, photo_url,
+                        detected_location_details, detected_location_sub_district, detected_location_district, detected_location_province, detected_location_region, photo_url,
                         reported_date, receiving_channel, incident_summary, case_number, 
                         human_trafficking_indicators, victim_classification, human_trafficking_type, 
                         action_taken, operation_result, found_date, notes,
@@ -390,11 +391,11 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     ) VALUES (
                         $1, $2, $3, $4, 
                         $5, $6, $7, $8, 
-                        $9, $10, $11, $12, $13, 
-                        $14, $15, $16, $17, 
-                        $18, $19, $20, 
-                        $21, $22, $23, $24, $25, 
-                        $26, $27, $28, $29
+                        $9, $10, $11, $12, $13, $14, 
+                        $15, $16, $17, $18, 
+                        $19, $20, $21, 
+                        $22, $23, $24, $25, $26, 
+                        $27, $28, $29, $30
                     )
                 `;
                 
@@ -402,7 +403,7 @@ const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
                     agency_id, informant_id, missing_person_id, validateLen(mappedRow.relationship, 100),
                     validateLen(mappedRow.entry_channel, 255), validateLen(mappedRow.entry_checkpoint, 255), 
                     validateLen(mappedRow.airline, 100), parseDateForDB(mappedRow.entry_date),
-                    mappedRow.detected_location_details, mappedRow.detected_location_sub_district, mappedRow.detected_location_district, mappedRow.detected_location_province, mappedRow.drivePhotoUrl,
+                    mappedRow.detected_location_details, mappedRow.detected_location_sub_district, mappedRow.detected_location_district, mappedRow.detected_location_province, getRegionFromProvince(mappedRow.detected_location_province), mappedRow.drivePhotoUrl,
                     parseDateForDB(mappedRow.report_date), validateLen(mappedRow.report_channel, 255), 
                     mappedRow.circumstances, validateLen(mappedRow.case_no, 100), 
                     mappedRow.human_trafficking_indicator, mappedRow.victim_screening, validateLen(mappedRow.trafficking_type, 255),
