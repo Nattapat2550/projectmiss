@@ -7,7 +7,7 @@ import MissingTable, { SortField } from "@/components/missing/MissingTable";
 import MissingCard from "@/components/missing/MissingCard";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
-import { toPng } from "html-to-image";
+import { toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
 
 const missingTranslationMap: { [key: string]: string } = {
@@ -222,8 +222,11 @@ function MissingPageContent() {
 
     if (result.isConfirmed) {
       // Excel
-      const selectedData = selectedRows.map((person: any) => {
-        const row: any = {};
+      Swal.fire({ title: "กำลังสร้าง Excel", text: "กรุณารอสักครู่...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      setTimeout(() => {
+        try {
+          const selectedData = selectedRows.map((person: any) => {
+            const row: any = {};
         const formattedKeys = ["first_name_th", "middle_name_th", "last_name_th", "first_name_en", "middle_name_en", "last_name_en", "date_of_birth", "gender", "human_trafficking_indicators", "operation_result", "id"];
 
         const fullNameTh = `${person.first_name_th || ""} ${person.middle_name_th || ""} ${person.last_name_th || ""}`.replace(/\s+/g, ' ').trim();
@@ -243,16 +246,28 @@ function MissingPageContent() {
           }
         });
         return row;
-      });
-      const ws = XLSX.utils.json_to_sheet(selectedData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Missing Persons");
-      XLSX.writeFile(wb, "missing_persons.xlsx");
-      handleCancelExport();
+          });
+          const ws = XLSX.utils.json_to_sheet(selectedData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Missing Persons");
+          XLSX.writeFile(wb, "missing_persons.xlsx");
+        } catch (err) {
+          console.error("Excel Export error:", err);
+          Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถสร้างไฟล์ Excel ได้", "error");
+        } finally {
+          handleCancelExport();
+          Swal.close();
+        }
+      }, 50);
     } else if (result.isDenied) {
       // PDF
       setIsExporting(true);
-      Swal.fire({ title: "กำลังสร้าง PDF", text: "กรุณารอสักครู่...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ 
+        title: "กำลังสร้าง PDF", 
+        html: `กรุณารอสักครู่...<br><br><div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden mt-2"><div id="swal-progress" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div></div><div id="swal-progress-text" class="mt-2 text-sm font-medium">0% (0/${selectedRows.length})</div>`, 
+        allowOutsideClick: false, 
+        didOpen: () => Swal.showLoading() 
+      });
       try {
         let pdf: any = null;
         for (let i = 0; i < selectedRows.length; i++) {
@@ -260,7 +275,7 @@ function MissingPageContent() {
           const element = document.getElementById(`pdf-card-${id}`);
           if (element) {
             // Use html-to-image to perfectly preserve Thai typography (vowels/tones) and CSS layout
-            const imgData = await toPng(element, { pixelRatio: 2, cacheBust: true });
+            const imgData = await toJpeg(element, { quality: 0.85, pixelRatio: 2, cacheBust: true });
             
             const width = element.offsetWidth * 2;
             const height = element.offsetHeight * 2;
@@ -270,7 +285,14 @@ function MissingPageContent() {
             } else {
               pdf.addPage([width, height], "l");
             }
-            pdf.addImage(imgData, "PNG", 0, 0, width, height);
+            pdf.addImage(imgData, "JPEG", 0, 0, width, height, undefined, "FAST");
+            
+            // Update progress bar
+            const percent = Math.round(((i + 1) / selectedRows.length) * 100);
+            const progressBar = document.getElementById('swal-progress');
+            const progressText = document.getElementById('swal-progress-text');
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (progressText) progressText.innerText = `${percent}% (${i + 1}/${selectedRows.length})`;
           }
         }
         if (pdf) pdf.save("missing_persons.pdf");

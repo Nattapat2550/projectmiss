@@ -42,7 +42,7 @@ function DashboardContent() {
     const updated = isVisible ? visibleCharts.filter((c) => c !== chart) : [...visibleCharts, chart];
     saveVisibleCharts(updated);
   };
-  const inputClass = "w-full bg-background border border-(--wrapper) text-foreground rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--header)/40 [&::-webkit-calendar-picker-indicator]:dark:invert";
+  const inputClass = "w-full bg-background border border-(--wrapper) text-foreground rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--header)/40 dark:[color-scheme:dark]";
 
   return (
     <div className="w-full p-4 sm:p-6 transition-colors duration-200" style={{ backgroundColor: "var(--wrapper)", minHeight: "calc(100vh - 80px)" }}>

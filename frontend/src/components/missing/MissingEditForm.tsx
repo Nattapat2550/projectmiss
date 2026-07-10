@@ -46,7 +46,7 @@ export default function MissingEditForm({
     return `https://wsrv.nl/?url=${encodeURIComponent(fullUrl)}`;
   };
 
-  const inputClass = "w-full border px-3 py-1.5 text-sm rounded-sm bg-background !text-black dark:!text-white border-(--wrapper) focus:outline-none transition-all";
+  const inputClass = "w-full border px-3 py-1.5 text-sm rounded-sm bg-background !text-black dark:!text-white border-(--wrapper) focus:outline-none transition-all dark:[color-scheme:dark]";
   const labelClass = "block text-xs font-semibold mb-1.5 !text-black dark:!text-white opacity-80";
   const { provinces: detProvinces, districtOptions: detDistrictOptions, subDistrictOptions: detSubDistrictOptions } = useAddressOptions(formData.detected_location_province, formData.detected_location_district);
   const { commandCenterOptions, divisionOptions, stationOptions } = useAgenciesOptions(formData.command_center, formData.division_name, formData.station);

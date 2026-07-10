@@ -44,6 +44,7 @@
   --chart-5: #563D67; /* ม่วงพลัมเข้ม */
   --chart-6: #A77B58; /* น้ำตาลทอง/บรอนซ์ */
   --chart-other: #7F8C8D; /* เทากลางสำหรับหมวดหมู่อื่นๆ */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -122,6 +123,7 @@ body {
   --chart-5: #D6A2E8; /* ม่วงลาเวนเดอร์ */
   --chart-6: #EDCFA9; /* ครีมทองหรูหรา */
   --chart-other: #A4B0BE; /* เทาอ่อน */
+  color-scheme: dark;
 }
 
 [data-theme="dark"] body {
@@ -156,3 +158,46 @@ body {
 [data-theme="dark"] .badge-dot {
   background-color: rgba(255, 255, 255, 0.9);
 }
+
+/* 🌟 Custom Styles for Select and Date Inputs to match Theme */
+select, 
+input[type="date"],
+input[type="time"] {
+  color-scheme: light;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23171717' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.2em;
+  padding-right: 2.5rem !important;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23AED3DD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
