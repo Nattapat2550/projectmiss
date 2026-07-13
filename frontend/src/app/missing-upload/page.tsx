@@ -131,10 +131,10 @@ export default function MissingUploadPage() {
 
       <form onSubmit={handlePreview} className="mb-8 p-6 bg-(--container) border border-(--wrapper) rounded-xl shadow-sm max-w-xl">
         <div className="flex flex-col gap-4">
-          <label className="font-semibold text-sm text-(--blueText)">เลือกไฟล์ Excel ของคุณ (.xlsx, .xls)</label>
+          <label className="font-semibold text-sm text-(--blueText)">เลือกไฟล์ Excel หรือ Word ของคุณ (.xlsx, .xls, .docx)</label>
           <input 
             type="file" 
-            accept=".xlsx, .xls" 
+            accept=".xlsx, .xls, .docx" 
             onChange={handleFileChange}
             className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-(--button) file:text-(--header) hover:file:opacity-80 border border-(--wrapper) p-2 rounded-md bg-(--container) cursor-pointer w-full text-sm"
           />

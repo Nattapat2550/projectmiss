@@ -18,20 +18,37 @@ import { getRegionFromProvince } from "../utils/regionMapper";
 import * as cache from "../utils/cache";
 
 const processUploadMissingExcel = async (fileBuffer, action, jobId) => {
-    const workbookXlsx = xlsx.read(fileBuffer, { type: "buffer" });
+    const filename = fileBuffer.originalname || "";
+    const buffer = fileBuffer.buffer || fileBuffer;
+    let workbookXlsx;
+
+    if (filename.toLowerCase().endsWith(".docx")) {
+        const mammoth = require("mammoth");
+        const result = await mammoth.convertToHtml({ buffer: buffer });
+        workbookXlsx = xlsx.read(result.value, { type: "string" });
+    } else {
+        workbookXlsx = xlsx.read(buffer, { type: "buffer" });
+    }
+
     const sheetName = workbookXlsx.SheetNames[0];
     let rawData = xlsx.utils.sheet_to_json(workbookXlsx.Sheets[sheetName], { defval: null });
 
-    const workbookExt = new ExcelJS.Workbook();
-    await workbookExt.xlsx.load(fileBuffer);
-    const worksheetExt = workbookExt.worksheets[0];
-
     const imagesMap = {};
-    for (const image of worksheetExt.getImages()) {
-        const rowIdx = image.range.tl.nativeRow; 
-        const imgInfo = workbookExt.getImage(image.imageId);
-        if (imgInfo && imgInfo.buffer) {
-            imagesMap[rowIdx] = { buffer: imgInfo.buffer, extension: imgInfo.extension || 'jpeg' };
+    if (!filename.toLowerCase().endsWith(".docx")) {
+        try {
+            const workbookExt = new ExcelJS.Workbook();
+            await workbookExt.xlsx.load(buffer);
+            const worksheetExt = workbookExt.worksheets[0];
+
+            for (const image of worksheetExt.getImages()) {
+                const rowIdx = image.range.tl.nativeRow; 
+                const imgInfo = workbookExt.getImage(image.imageId);
+                if (imgInfo && imgInfo.buffer) {
+                    imagesMap[rowIdx] = { buffer: imgInfo.buffer, extension: imgInfo.extension || 'jpeg' };
+                }
+            }
+        } catch (err) {
+            console.error("Error extracting images with exceljs:", err);
         }
     }
 
